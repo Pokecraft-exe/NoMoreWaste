@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Back-office - Collectes</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="bo-content">
+  <section class="section">
+    <h1>Collectes</h1>
+    <p class="muted">Rechercher une collecte, consulter son detail, la modifier ou la supprimer.</p>
+  </section>
+
+  <section class="section">
+    <div class="actions" style="justify-content:flex-end;">
+      <button type="button" id="btn-creer-collecte">Créer une collecte</button>
+    </div>
+    <div class="filters">
+      <div class="field"><label for="q">Lieu ou partenaire</label><input id="q" type="text" placeholder="Rechercher..."></div>
+      <div class="field">
+        <label for="statut-filter">Statut</label>
+        <select id="statut-filter">
+          <option value="">Tous</option>
+          <option value="planifiee">Planifiee</option>
+          <option value="confirmee">Confirmee</option>
+          <option value="en_cours">En cours</option>
+          <option value="terminee">Terminee</option>
+          <option value="annulee">Annulee</option>
+        </select>
+      </div>
+      <div class="field"><label for="date-filter">Date</label><input id="date-filter" type="date"></div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Lieu</th><th>Date</th><th>Partenaire</th><th>Statut</th></tr></thead>
+      <tbody id="results"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderBackofficeNav("collectes");
+
+  if (guardBackoffice("bo-content")) {
+    const qInput = document.getElementById("q");
+    const statutFilter = document.getElementById("statut-filter");
+    const dateFilter = document.getElementById("date-filter");
+    const body = document.getElementById("results");
+
+    function render() {
+      const list = Mock.searchCollectes({ q: qInput.value, statut: statutFilter.value, date: dateFilter.value });
+      body.innerHTML = list.length
+        ? list.map(function (c) {
+            return '<tr class="clickable" data-id="' + c.id + '">' +
+              "<td>" + escapeHtml(c.lieu) + "</td>" +
+              "<td>" + c.date + " " + (c.heure || "") + "</td>" +
+              "<td>" + escapeHtml(c.partenaire || "-") + "</td>" +
+              '<td><span class="badge">' + c.statut + "</span></td>" +
+              "</tr>";
+          }).join("")
+        : '<tr><td colspan="4" class="muted">Aucune collecte ne correspond a cette recherche.</td></tr>';
+
+      body.querySelectorAll("[data-id]").forEach(function (row) {
+        row.addEventListener("click", function () { openCollecte(Number(row.dataset.id)); });
+      });
+    }
+
+    function openCollecte(id) {
+      const c = Mock.getCollecte(id);
+      if (!c) return;
+      const participants = Mock.getCollecteParticipants(c.id).map(function (uid) { return Mock.getUser(uid); }).filter(Boolean);
+      const confirmedDenrees = c.denrees.filter(function (d) { return d.confirmee; }).length;
+
+      const box = Popups.open(
+        '<h3 class="popup-title">Collecte : ' + escapeHtml(c.lieu) + "</h3>" +
+        '<form id="collecte-form">' +
+        '<div class="field"><label for="c-lieu">Lieu</label><input id="c-lieu" value="' + escapeHtml(c.lieu) + '" required></div>' +
+        '<div class="grid grid-2">' +
+        '<div class="field"><label for="c-date">Date</label><input id="c-date" type="date" value="' + c.date + '" required></div>' +
+        '<div class="field"><label for="c-heure">Heure</label><input id="c-heure" type="time" value="' + (c.heure || "") + '"></div>' +
+        "</div>" +
+        '<div class="field"><label for="c-partenaire">Partenaire</label><input id="c-partenaire" value="' + escapeHtml(c.partenaire || "") + '"></div>' +
+        '<div class="field"><label for="c-statut">Statut</label><select id="c-statut">' +
+        ["planifiee", "confirmee", "en_cours", "terminee", "annulee"].map(function (s) {
+          return '<option value="' + s + '"' + (s === c.statut ? " selected" : "") + ">" + s + "</option>";
+        }).join("") +
+        "</select></div>" +
+        '<div class="field"><label for="c-desc">Description</label><textarea id="c-desc">' + escapeHtml(c.description || "") + "</textarea></div>" +
+
+        '<h4 style="margin-top:16px;">Bénévoles participants</h4>' +
+        (participants.length === 0
+          ? '<p class="muted">Aucun(e) bénévole n\'a encore indique etre disponible pour cette collecte.</p>'
+          : '<div class="table-wrap"><table><thead><tr><th>Confirme</th><th>Bénévole</th><th>Role</th></tr></thead><tbody>' +
+            participants.map(function (p) {
+              const current = c.benevolesAffectes.find(function (a) { return a.benevoleId === p.id; });
+              return "<tr><td><input type=\"checkbox\" class=\"benevole-check\" data-benevole=\"" + p.id + "\"" + (current ? " checked" : "") + "></td>" +
+                "<td>" + escapeHtml(Mock.userLabel(p)) + "</td>" +
+                '<td><input type="text" class="benevole-role" data-benevole="' + p.id + '" placeholder="Ex: collecte et tri" value="' + escapeHtml(current ? current.role : "") + '"></td></tr>';
+            }).join("") +
+            "</tbody></table></div>") +
+        '<p class="muted" style="margin-top:6px;">Confirmer un(e) bénévole ici lui permet d\'ajouter/valider des denrees sur cette collecte.</p>' +
+
+        '<div class="note-box" style="margin-top:14px;">' + c.denrees.length + " denree(s) enregistree(s), " + confirmedDenrees + " confirmee(s). " +
+        '<a href="../frontoffice/collecte.html?id=' + c.id + '" target="_blank">Gerer les denrees &rarr;</a></div>' +
+
+        '<div class="actions" style="margin-top:14px;">' +
+        '<button type="submit">Enregistrer</button>' +
+        '<button type="button" class="btn-secondary" data-popup-close>Fermer</button>' +
+        '<button type="button" class="btn-danger" id="delete-collecte" style="margin-left:auto;">Supprimer</button>' +
+        "</div>" +
+        "</form>"
+      );
+
+      box.querySelector("#collecte-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+
+        const affectations = [];
+        box.querySelectorAll(".benevole-check").forEach(function (checkbox) {
+          if (!checkbox.checked) return;
+          const benevoleId = Number(checkbox.dataset.benevole);
+          const roleInput = box.querySelector('.benevole-role[data-benevole="' + benevoleId + '"]');
+          affectations.push({ benevoleId: benevoleId, role: (roleInput && roleInput.value) || "Non precise" });
+        });
+
+        Mock.updateCollecte(c.id, {
+          lieu: document.getElementById("c-lieu").value,
+          date: document.getElementById("c-date").value,
+          heure: document.getElementById("c-heure").value,
+          partenaire: document.getElementById("c-partenaire").value,
+          statut: document.getElementById("c-statut").value,
+          description: document.getElementById("c-desc").value,
+        });
+        Mock.setCollecteAffectations(c.id, affectations);
+        Popups.close();
+        Popups.toast("Collecte mise a jour.");
+        render();
+      });
+
+      box.querySelector("#delete-collecte").addEventListener("click", function () {
+        Popups.confirmAction("Supprimer definitivement cette collecte ?", function () {
+          Mock.deleteCollecte(c.id);
+          Popups.toast("Collecte supprimee.");
+          render();
+        });
+      });
+    }
+
+    function openCreerCollecte() {
+      const box = Popups.open(
+        '<h3 class="popup-title">Créer une collecte</h3>' +
+        '<form id="creer-collecte-form">' +
+        '<div class="field"><label for="ncol-lieu">Lieu</label><input id="ncol-lieu" required></div>' +
+        '<div class="grid grid-2">' +
+        '<div class="field"><label for="ncol-date">Date</label><input id="ncol-date" type="date" required></div>' +
+        '<div class="field"><label for="ncol-heure">Heure</label><input id="ncol-heure" type="time"></div>' +
+        "</div>" +
+        '<div class="field"><label for="ncol-partenaire">Partenaire (association, si applicable)</label><input id="ncol-partenaire"></div>' +
+        Popups.entitySearchField("ncol-commercant", {
+          label: "Commerçant(e) partenaire (si la collecte a lieu chez un commerçant)",
+          placeholder: "Rechercher un compte commerçant(e)...",
+        }) +
+        '<div class="field"><label for="ncol-statut">Statut</label><select id="ncol-statut">' +
+        ["planifiee", "confirmee", "en_cours", "terminee", "annulee"].map(function (s) {
+          return '<option value="' + s + '">' + s + "</option>";
+        }).join("") +
+        "</select></div>" +
+        '<div class="field"><label for="ncol-desc">Description</label><textarea id="ncol-desc"></textarea></div>' +
+        '<div class="actions"><button type="submit">Créer</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+        "</form>"
+      );
+
+      Popups.wireEntitySearch("ncol-commercant", function (query) {
+        return Mock.searchComptes({ q: query, type: "commercant" });
+      }, function (u) {
+        return { label: Mock.userLabel(u), html: escapeHtml(Mock.userLabel(u)) + ' <span class="muted">' + escapeHtml(u.ville || "") + "</span>" };
+      });
+
+      box.querySelector("#creer-collecte-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        const commercantId = document.getElementById("ncol-commercant-id").value;
+        Mock.createCollecte({
+          lieu: document.getElementById("ncol-lieu").value,
+          date: document.getElementById("ncol-date").value,
+          heure: document.getElementById("ncol-heure").value,
+          partenaire: document.getElementById("ncol-partenaire").value,
+          commercantId: commercantId ? Number(commercantId) : null,
+          statut: document.getElementById("ncol-statut").value,
+          description: document.getElementById("ncol-desc").value,
+        });
+        Popups.close();
+        Popups.toast("Collecte creee.");
+        render();
+      });
+    }
+
+    document.getElementById("btn-creer-collecte").addEventListener("click", openCreerCollecte);
+
+    qInput.addEventListener("input", render);
+    statutFilter.addEventListener("change", render);
+    dateFilter.addEventListener("change", render);
+    render();
+
+    const preselectId = new URLSearchParams(window.location.search).get("id");
+    if (preselectId) openCollecte(Number(preselectId));
+  }
+</script>
+</body>
+</html>

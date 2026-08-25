@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Back-office - Forums</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="bo-content">
+  <section class="section">
+    <h1>Forums</h1>
+    <p class="muted">Rechercher un forum, consulter son contenu, le modifier ou le supprimer (y compris les messages qu'il contient).</p>
+  </section>
+
+  <section class="section">
+    <div class="actions" style="justify-content:flex-end;">
+      <button type="button" id="btn-creer-forum">Créer un forum</button>
+    </div>
+    <div class="filters">
+      <div class="field"><label for="q">Titre ou auteur</label><input id="q" type="text" placeholder="Rechercher..."></div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Titre</th><th>Auteur</th><th>Cree le</th><th>Reponses</th><th>Vues</th></tr></thead>
+      <tbody id="results"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderBackofficeNav("forums");
+
+  if (guardBackoffice("bo-content")) {
+    const qInput = document.getElementById("q");
+    const body = document.getElementById("results");
+
+    function render() {
+      const list = Mock.searchForums(qInput.value);
+      body.innerHTML = list.length
+        ? list.map(function (f) {
+            const auteur = Mock.getUser(f.auteurId);
+            return '<tr class="clickable" data-id="' + f.id + '">' +
+              "<td>" + escapeHtml(f.titre) + "</td>" +
+              "<td>" + escapeHtml(auteur ? Mock.userLabel(auteur) : "Inconnu") + "</td>" +
+              "<td>" + timeAgo(f.createdAt) + "</td>" +
+              "<td>" + f.messages.length + "</td>" +
+              "<td>" + f.vues + "</td>" +
+              "</tr>";
+          }).join("")
+        : '<tr><td colspan="5" class="muted">Aucun forum ne correspond a cette recherche.</td></tr>';
+
+      body.querySelectorAll("[data-id]").forEach(function (row) {
+        row.addEventListener("click", function () { openForum(Number(row.dataset.id)); });
+      });
+    }
+
+    function openForum(id) {
+      const forum = Mock.getForum(id);
+      if (!forum) return;
+      const auteur = Mock.getUser(forum.auteurId);
+
+      const box = Popups.open(
+        '<h3 class="popup-title">Forum : ' + escapeHtml(forum.titre) + "</h3>" +
+        '<p class="muted">par ' + escapeHtml(auteur ? Mock.userLabel(auteur) : "Inconnu") + " &middot; " + timeAgo(forum.createdAt) + " &middot; " + forum.vues + " vues</p>" +
+        '<form id="forum-form">' +
+        '<div class="field"><label for="f-titre">Titre</label><input id="f-titre" value="' + escapeHtml(forum.titre) + '" required></div>' +
+        '<div class="field"><label for="f-message">Message d\'ouverture</label><textarea id="f-message" required>' + escapeHtml(forum.message) + "</textarea></div>" +
+        '<div class="actions">' +
+        '<button type="submit">Enregistrer</button>' +
+        '<button type="button" class="btn-secondary" data-popup-close>Fermer</button>' +
+        '<button type="button" class="btn-danger" id="delete-forum" style="margin-left:auto;">Supprimer le forum</button>' +
+        "</div>" +
+        "</form>" +
+        '<h4 style="margin-top:18px;">' + forum.messages.length + " message(s)</h4>" +
+        '<div id="bo-forum-messages"></div>',
+        { wide: true }
+      );
+
+      function renderMessages() {
+        const wrap = box.querySelector("#bo-forum-messages");
+        if (forum.messages.length === 0) {
+          wrap.innerHTML = '<div class="empty">Aucun message.</div>';
+          return;
+        }
+        wrap.innerHTML = forum.messages.map(function (m) {
+          const expediteur = Mock.getUser(m.auteurId);
+          return '<div class="thread-message">' +
+            '<span class="avatar">' + (expediteur ? (expediteur.prenom[0] + expediteur.nom[0]).toUpperCase() : "?") + "</span>" +
+            '<div class="bubble">' +
+            '<div class="msg-meta"><strong>' + escapeHtml(expediteur ? Mock.userLabel(expediteur) : "Inconnu") + "</strong><span>" + timeAgo(m.date) + "</span>" +
+            '<button type="button" class="btn-sm btn-danger" data-del-msg="' + m.id + '" style="margin-left:auto;">Supprimer</button></div>' +
+            "<div>" + escapeHtml(m.message) + "</div>" +
+            "</div></div>";
+        }).join("");
+        wrap.querySelectorAll("[data-del-msg]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            Popups.confirmAction("Supprimer ce message du forum ?", function () {
+              Mock.deleteForumMessage(forum.id, Number(btn.dataset.delMsg));
+              openForum(id);
+            });
+          });
+        });
+      }
+
+      box.querySelector("#forum-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        Mock.updateForum(forum.id, {
+          titre: document.getElementById("f-titre").value,
+          message: document.getElementById("f-message").value,
+        });
+        Popups.close();
+        Popups.toast("Forum mis a jour.");
+        render();
+      });
+
+      box.querySelector("#delete-forum").addEventListener("click", function () {
+        Popups.confirmAction("Supprimer definitivement ce forum et toutes ses reponses ?", function () {
+          Mock.deleteForum(forum.id);
+          Popups.toast("Forum supprime.");
+          render();
+        });
+      });
+
+      renderMessages();
+    }
+
+    function openCreerForum() {
+      const box = Popups.open(
+        '<h3 class="popup-title">Créer un forum</h3>' +
+        '<form id="creer-forum-form">' +
+        Popups.entitySearchField("nf-auteur", {
+          label: "Auteur(rice) (nom ou email)",
+          placeholder: "Rechercher un compte...",
+          required: true,
+        }) +
+        '<div class="field"><label for="nf-titre">Titre</label><input id="nf-titre" required></div>' +
+        '<div class="field"><label for="nf-message">Message d\'ouverture</label><textarea id="nf-message" required></textarea></div>' +
+        '<div class="actions"><button type="submit">Créer</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+        "</form>"
+      );
+
+      Popups.wireEntitySearch("nf-auteur", function (query) {
+        return Mock.searchComptes({ q: query });
+      }, function (u) {
+        return { label: Mock.userLabel(u), html: escapeHtml(Mock.userLabel(u)) + ' <span class="muted">' + escapeHtml(u.email) + " · " + userTypeLabel(u.type) + "</span>" };
+      });
+
+      box.querySelector("#creer-forum-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        const auteurId = document.getElementById("nf-auteur-id").value;
+        if (!auteurId) { Popups.toast("Choisissez un(e) auteur(rice) dans la liste proposee."); return; }
+        Mock.createForum(Number(auteurId), document.getElementById("nf-titre").value, document.getElementById("nf-message").value);
+        Popups.close();
+        Popups.toast("Forum cree.");
+        render();
+      });
+    }
+
+    document.getElementById("btn-creer-forum").addEventListener("click", openCreerForum);
+
+    qInput.addEventListener("input", render);
+    render();
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Forums de conseil</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap">
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <h1>Forums de conseil</h1>
+        <p class="muted">Echangez vos astuces anti-gaspi avec la communaute.</p>
+      </div>
+      <button type="button" id="new-forum-btn">Creer un forum</button>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Top 10 des forums en vogue</h2>
+    <div id="trending-list" class="results"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Rechercher un forum</h2></div>
+    <div class="filters">
+      <div class="field">
+        <label for="search-input">Nom du forum</label>
+        <input id="search-input" type="text" placeholder="Ex: pain, compost, congelation...">
+      </div>
+    </div>
+    <div id="search-results" class="grid grid-auto"></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderTopNav("forums");
+  const user = Mock.getCurrentUser();
+
+  function renderTrending() {
+    const list = document.getElementById("trending-list");
+    const topForums = Mock.topTrending(10);
+    if (topForums.length === 0) {
+      list.innerHTML = '<div class="empty">Aucun forum pour le moment.</div>';
+      return;
+    }
+    list.innerHTML = topForums.map(function (f, i) {
+      const auteur = Mock.userLabel(Mock.getUser(f.auteurId));
+      return '<a class="card-link list-row" href="forum.html?id=' + f.id + '">' +
+        '<span class="rank">' + (i + 1) + "</span>" +
+        '<span class="grow">' +
+        '<div class="card-title">' + escapeHtml(f.titre) + "</div>" +
+        '<div class="card-meta"><span>par ' + escapeHtml(auteur) + '</span><span>' + f.messages.length + ' reponse(s)</span><span>' + f.vues + ' vues</span></div>' +
+        "</span>" +
+        "</a>";
+    }).join("");
+  }
+
+  function renderSearch(query) {
+    const wrap = document.getElementById("search-results");
+    const results = Mock.searchForums(query);
+    if (results.length === 0) {
+      wrap.innerHTML = '<div class="empty">Aucun forum ne correspond a cette recherche.</div>';
+      return;
+    }
+    wrap.innerHTML = results.map(function (f) {
+      const auteur = Mock.userLabel(Mock.getUser(f.auteurId));
+      return '<a class="card-link" href="forum.html?id=' + f.id + '">' +
+        '<div class="card-title">' + escapeHtml(f.titre) + "</div>" +
+        '<div class="card-meta"><span>par ' + escapeHtml(auteur) + '</span><span>' + timeAgo(f.createdAt) + '</span><span>' + f.messages.length + ' reponse(s)</span></div>' +
+        "</a>";
+    }).join("");
+  }
+
+  document.getElementById("search-input").addEventListener("input", function (evt) {
+    renderSearch(evt.target.value);
+  });
+
+  document.getElementById("new-forum-btn").addEventListener("click", function () {
+    if (!user) {
+      Popups.open('<h3 class="popup-title">Connexion requise</h3><p class="muted">Connectez-vous (voir la barre de navigation) pour creer un forum.</p>');
+      return;
+    }
+    const box = Popups.open(
+      '<h3 class="popup-title">Creer un forum</h3>' +
+      '<form id="new-forum-form">' +
+      '<div class="field"><label for="nf-titre">Titre</label><input id="nf-titre" required placeholder="Ex: Astuces pour eviter le gaspillage de pain"></div>' +
+      '<div class="field"><label for="nf-message">Message d\'ouverture</label><textarea id="nf-message" required placeholder="Decrivez votre question ou votre astuce..."></textarea></div>' +
+      '<div class="actions"><button type="submit">Publier</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+      "</form>"
+    );
+    box.querySelector("#new-forum-form").addEventListener("submit", function (evt) {
+      evt.preventDefault();
+      const forum = Mock.createForum(user.id, document.getElementById("nf-titre").value, document.getElementById("nf-message").value);
+      Popups.close();
+      window.location.href = "forum.html?id=" + forum.id;
+    });
+  });
+
+  renderTrending();
+  renderSearch("");
+</script>
+</body>
+</html>

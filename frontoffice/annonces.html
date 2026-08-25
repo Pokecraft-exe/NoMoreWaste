@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Annonces</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap">
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <h1>Petites annonces entre particuliers</h1>
+        <p class="muted">Covoiturage, reparation, gardiennage, location, vente, don : partagez et economisez.</p>
+      </div>
+      <button type="button" id="new-annonce-btn">Deposer une annonce</button>
+    </div>
+
+    <div class="chip-row" id="category-chips"></div>
+
+    <div class="filters">
+      <div class="field">
+        <label for="query-input">Recherche</label>
+        <input id="query-input" type="text" placeholder="Rechercher par mot-cle...">
+      </div>
+    </div>
+
+    <div id="results" class="grid grid-auto"></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderTopNav("annonces");
+  const user = Mock.getCurrentUser();
+  let activeCategorie = "";
+
+  function renderChips() {
+    const wrap = document.getElementById("category-chips");
+    const all = [{ value: "", label: "Toutes" }].concat(Mock.CATEGORIES_ANNONCE);
+    wrap.innerHTML = all.map(function (c) {
+      return '<button type="button" class="chip' + (c.value === activeCategorie ? " active" : "") + '" data-cat="' + c.value + '">' + c.label + "</button>";
+    }).join("");
+    wrap.querySelectorAll("[data-cat]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        activeCategorie = btn.dataset.cat;
+        renderChips();
+        renderResults();
+      });
+    });
+  }
+
+  function renderResults() {
+    const wrap = document.getElementById("results");
+    const query = document.getElementById("query-input").value;
+    const list = Mock.listAnnonces({ categorie: activeCategorie, query: query });
+
+    if (list.length === 0) {
+      wrap.innerHTML = '<div class="empty">Aucune annonce ne correspond a ces criteres.</div>';
+      return;
+    }
+
+    wrap.innerHTML = list.map(function (a) {
+      const cat = Mock.CATEGORIES_ANNONCE.find(function (c) { return c.value === a.categorie; });
+      const etat = Mock.ETATS_ANNONCE.find(function (e) { return e.value === a.etat; });
+      return '<button type="button" class="card-link" data-annonce="' + a.id + '" style="text-align:left;cursor:pointer;">' +
+        '<div class="card-title">' + escapeHtml(a.titre) + "</div>" +
+        '<p class="muted" style="margin:6px 0;">' + escapeHtml(a.description.slice(0, 90)) + (a.description.length > 90 ? "..." : "") + "</p>" +
+        '<div class="card-meta">' +
+        '<span class="badge">' + cat.label + "</span>" +
+        '<span class="badge badge-' + etat.tone + '">' + etat.label + "</span>" +
+        '<span>' + (a.prix != null ? a.prix + " €" : "Gratuit") + "</span>" +
+        "</div>" +
+        "</button>";
+    }).join("");
+
+    wrap.querySelectorAll("[data-annonce]").forEach(function (btn) {
+      btn.addEventListener("click", function () { openAnnonce(Number(btn.dataset.annonce)); });
+    });
+  }
+
+  function openAnnonce(id) {
+    const a = Mock.getAnnonce(id);
+    const cat = Mock.CATEGORIES_ANNONCE.find(function (c) { return c.value === a.categorie; });
+    const etat = Mock.ETATS_ANNONCE.find(function (e) { return e.value === a.etat; });
+    const auteur = Mock.getUser(a.auteurId);
+    const isOwner = !!user && auteur.id === user.id;
+
+    const box = Popups.open(
+      '<h3 class="popup-title">' + escapeHtml(a.titre) + "</h3>" +
+      '<div class="card-meta" style="margin-bottom:10px;">' +
+      '<span class="badge">' + cat.label + "</span>" +
+      '<span class="badge badge-' + etat.tone + '">' + etat.label + "</span>" +
+      '<span>' + (a.prix != null ? a.prix + " €" : "Gratuit") + "</span>" +
+      '<span>par ' + escapeHtml(Mock.userLabel(auteur)) + "</span>" +
+      "</div>" +
+      "<p>" + escapeHtml(a.description) + "</p>" +
+      (isOwner ? '<p class="muted">Cette annonce vous appartient : gerez-la (modification, etat, suppression) depuis <a href="profil.html">votre profil</a>.</p>' : "") +
+      '<h4>Messagerie &amp; negociation</h4>' +
+      '<div id="annonce-messages"></div>' +
+      (user
+        ? '<form id="annonce-msg-form">' +
+          '<div class="grid grid-2">' +
+          '<div class="field"><label for="am-message">Message</label><textarea id="am-message" required placeholder="Votre message..."></textarea></div>' +
+          '<div class="field"><label for="am-prix">Proposer un prix (optionnel)</label><input id="am-prix" type="number" min="0" placeholder="En €"></div>' +
+          "</div>" +
+          '<div class="actions"><button type="submit">Envoyer</button></div>' +
+          "</form>"
+        : '<div class="note-box">Connectez-vous (voir la barre de navigation) pour contacter le vendeur.</div>'),
+      { wide: true }
+    );
+
+    function renderMessages() {
+      const wrap = box.querySelector("#annonce-messages");
+      if (a.messages.length === 0) {
+        wrap.innerHTML = '<div class="empty">Aucun message pour le moment. Contactez le vendeur !</div>';
+        return;
+      }
+      wrap.innerHTML = a.messages.map(function (m) {
+        const expediteur = Mock.getUser(m.auteurId);
+        const canReportThis = !!user && user.id !== m.auteurId;
+        return '<div class="thread-message">' +
+          '<span class="avatar">' + (expediteur.prenom[0] + expediteur.nom[0]).toUpperCase() + "</span>" +
+          '<div class="bubble">' +
+          '<div class="msg-meta"><strong>' + escapeHtml(Mock.userLabel(expediteur)) + "</strong><span>" + timeAgo(m.date) + "</span>" +
+          (canReportThis ? '<button type="button" class="report-link" data-report="' + m.id + '" style="margin-left:auto;">Signaler</button>' : "") +
+          "</div>" +
+          "<div>" + escapeHtml(m.message) + "</div>" +
+          (m.prixPropose != null ? '<div class="badge badge-warning" style="margin-top:6px;">Proposition : ' + m.prixPropose + " €</div>" : "") +
+          "</div>" +
+          "</div>";
+      }).join("");
+
+      wrap.querySelectorAll("[data-report]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const messageId = Number(btn.dataset.report);
+          Popups.openReportForm("Signaler ce message", function (motif) {
+            Mock.createSignalement("annonce_message", { annonceId: a.id, messageId: messageId }, user.id, motif);
+          });
+        });
+      });
+    }
+
+    const msgForm = box.querySelector("#annonce-msg-form");
+    if (msgForm) {
+      msgForm.addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        const message = box.querySelector("#am-message").value.trim();
+        if (!message) return;
+        const prix = box.querySelector("#am-prix").value;
+        Mock.sendAnnonceMessage(a.id, user.id, message, prix ? Number(prix) : null);
+        box.querySelector("#am-message").value = "";
+        box.querySelector("#am-prix").value = "";
+        renderMessages();
+        Popups.toast("Message envoye.");
+      });
+    }
+
+    renderMessages();
+  }
+
+  document.getElementById("query-input").addEventListener("input", renderResults);
+
+  document.getElementById("new-annonce-btn").addEventListener("click", function () {
+    if (!user) {
+      Popups.open('<h3 class="popup-title">Connexion requise</h3><p class="muted">Connectez-vous (voir la barre de navigation) pour deposer une annonce.</p>');
+      return;
+    }
+    const box = Popups.open(
+      '<h3 class="popup-title">Deposer une annonce</h3>' +
+      '<form id="new-annonce-form">' +
+      '<div class="field"><label for="na-cat">Categorie</label><select id="na-cat" required>' +
+      Mock.CATEGORIES_ANNONCE.map(function (c) { return '<option value="' + c.value + '">' + c.label + "</option>"; }).join("") +
+      "</select></div>" +
+      '<div class="field"><label for="na-titre">Titre</label><input id="na-titre" required></div>' +
+      '<div class="field"><label for="na-desc">Description</label><textarea id="na-desc" required></textarea></div>' +
+      '<div class="field"><label for="na-prix">Prix en euros (laisser vide si don/gratuit)</label><input id="na-prix" type="number" min="0"></div>' +
+      '<div class="actions"><button type="submit">Publier</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+      "</form>"
+    );
+    box.querySelector("#new-annonce-form").addEventListener("submit", function (evt) {
+      evt.preventDefault();
+      const prixValue = document.getElementById("na-prix").value;
+      Mock.createAnnonce(user.id, {
+        categorie: document.getElementById("na-cat").value,
+        titre: document.getElementById("na-titre").value,
+        description: document.getElementById("na-desc").value,
+        prix: prixValue === "" ? null : Number(prixValue),
+      });
+      Popups.close();
+      Popups.toast("Annonce publiee !");
+      renderResults();
+    });
+  });
+
+  renderChips();
+  renderResults();
+</script>
+</body>
+</html>

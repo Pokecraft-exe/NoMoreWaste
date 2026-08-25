@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Distribution</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="distribution-root"></main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderTopNav("accueil");
+  const user = Mock.getCurrentUser();
+  const distributionId = new URLSearchParams(window.location.search).get("id");
+
+  const STATUT_LABELS = { planifiee: "Planifiee", confirmee: "Confirmee", en_cours: "En cours", terminee: "Terminee", annulee: "Annulee" };
+
+  function formatDateFr(iso) {
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  }
+
+  function render() {
+    const root = document.getElementById("distribution-root");
+    const distribution = Mock.getDistribution(distributionId);
+
+    if (!distribution) {
+      root.innerHTML =
+        '<div class="empty">Cette distribution n\'existe pas ou a ete supprimee.</div>' +
+        '<p><a href="index.html">&larr; Retour a l\'accueil</a></p>';
+      return;
+    }
+
+    const mapQuery = encodeURIComponent(distribution.lieu);
+
+    root.innerHTML =
+      '<p><a href="index.html">&larr; Retour a l\'accueil</a></p>' +
+      '<section class="section">' +
+      '<div class="section-head">' +
+      "<div>" +
+      "<h1>" + escapeHtml(distribution.lieu) + "</h1>" +
+      '<div class="card-meta">' +
+      '<span class="badge">' + (STATUT_LABELS[distribution.statut] || distribution.statut) + "</span>" +
+      "<span>" + formatDateFr(distribution.date) + " a " + escapeHtml(distribution.heure) + "</span>" +
+      "</div>" +
+      "</div>" +
+      "</div>" +
+      '<div class="map-embed"><iframe src="https://www.google.com/maps?q=' + mapQuery + '&output=embed" loading="lazy" title="Localisation de la distribution" referrerpolicy="no-referrer-when-downgrade"></iframe></div>' +
+      '<p class="muted" style="margin-top:8px;"><a href="https://www.google.com/maps/search/?api=1&query=' + mapQuery + '" target="_blank" rel="noopener">Ouvrir dans Google Maps &rarr;</a></p>' +
+      "</section>" +
+
+      '<section class="section">' +
+      "<h2>Denrees distribuees</h2>" +
+      '<div id="denrees-list" class="table-wrap"><table>' +
+      "<thead><tr><th>Produit</th><th>Quantite allouee</th><th>Restant</th></tr></thead>" +
+      "<tbody>" +
+      (distribution.denrees.length
+        ? distribution.denrees.map(function (d) {
+            const stock = Mock.getStockProduit(d.produitId);
+            const remaining = Mock.getDistributionRemainingQty(distribution, d.produitId);
+            return "<tr><td>" + escapeHtml(stock ? stock.nom : "Produit #" + d.produitId) + "</td>" +
+              "<td>" + d.quantite + " " + escapeHtml(stock ? stock.unite : "") + "</td>" +
+              "<td>" + remaining + " " + escapeHtml(stock ? stock.unite : "") + "</td></tr>";
+          }).join("")
+        : '<tr><td colspan="3" class="muted">Les denrees de cette distribution n\'ont pas encore ete choisies par un(e) administrateur(rice).</td></tr>') +
+      "</tbody></table></div>" +
+      "</section>" +
+
+      '<section class="section" id="role-section"></section>';
+
+    renderRoleSection(distribution);
+  }
+
+  function renderRoleSection(distribution) {
+    const wrap = document.getElementById("role-section");
+
+    if (!user) {
+      wrap.innerHTML =
+        '<h2>Participer</h2>' +
+        '<div class="note-box">Connectez-vous en tant que bénévole pour participer sur place, ou en tant qu\'adherent(e) pour reserver des denrees.</div>' +
+        '<div class="actions"><a class="btn" href="connexion-inscription.html">Se connecter / s\'inscrire</a></div>';
+      return;
+    }
+
+    if (Mock.isBenevole(user) || Mock.isStaff(user)) {
+      renderBenevoleSection(wrap, distribution);
+      return;
+    }
+
+    if (Mock.isAdherent(user)) {
+      renderAdherentSection(wrap, distribution);
+      return;
+    }
+
+    wrap.innerHTML =
+      '<h2>Participer</h2>' +
+      '<div class="note-box">Les distributions sont animees par des bénévoles et reservent leurs denrees aux adherent(e)s. Vous pouvez devenir bénévole pour y participer.</div>' +
+      '<div class="actions"><button type="button" id="devenir-benevole-btn">Devenir bénévole</button></div>';
+
+    const btn = document.getElementById("devenir-benevole-btn");
+    if (btn) {
+      btn.addEventListener("click", function () {
+        const box = Popups.open(
+          '<h3 class="popup-title">Devenir bénévole</h3>' +
+          '<form id="benevole-form">' +
+          '<div class="field"><label for="bv-dispo">Disponibilites</label><input id="bv-dispo" required></div>' +
+          '<div class="field"><label for="bv-motiv">Motivation</label><textarea id="bv-motiv" required></textarea></div>' +
+          '<div class="actions"><button type="submit">Envoyer ma candidature</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+          "</form>"
+        );
+        box.querySelector("#benevole-form").addEventListener("submit", function (evt) {
+          evt.preventDefault();
+          Mock.candidaterBenevole(user.id, {
+            disponibilite: document.getElementById("bv-dispo").value,
+            motivation: document.getElementById("bv-motiv").value,
+          });
+          Popups.close();
+          Popups.toast("Candidature envoyee ! Votre profil est desormais bénévole (demo).");
+          setTimeout(function () { location.reload(); }, 900);
+        });
+      });
+    }
+  }
+
+  function renderBenevoleSection(wrap, distribution) {
+    const participe = Mock.hasParticipationDistribution(user.id, distribution.id);
+    const affectation = distribution.benevolesAffectes.find(function (a) { return a.benevoleId === user.id; });
+
+    wrap.innerHTML =
+      "<h2>Participer sur place</h2>" +
+      (participe
+        ? '<p class="badge badge-success">Vous avez indique etre disponible pour cette distribution.</p>'
+        : '<p class="muted">Indiquez votre disponibilite : un(e) administrateur(rice) choisira ensuite qui sera sur place et quel role lui sera confie.</p>') +
+      (affectation
+        ? '<div class="note-box">Role confirme par l\'association : <strong>' + escapeHtml(affectation.role) + "</strong></div>"
+        : (participe ? '<div class="note-box">En attente de confirmation de role par un(e) administrateur(rice).</div>' : "")) +
+      (Mock.isStaff(user) ? '<p class="muted" style="margin-top:10px;">En tant que staff, gerez les denrees, le quota et l\'affectation des benevoles depuis le <a href="../backoffice/distributions.html">back-office</a>.</p>' : "") +
+      '<div class="actions">' +
+      (participe ? "" : '<button type="button" id="participer-btn">Je suis disponible pour cette distribution</button>') +
+      "</div>";
+
+    const btn = document.getElementById("participer-btn");
+    if (btn) {
+      btn.addEventListener("click", function () {
+        Mock.participerDistribution(user.id, distribution.id);
+        Popups.toast("Merci ! Votre disponibilite a ete enregistree.");
+        render();
+      });
+    }
+  }
+
+  function renderAdherentSection(wrap, distribution) {
+    const reservedTotal = Mock.getAdherentReservedTotal(distribution, user.id);
+    const quotaRestant = Math.max(0, distribution.quotaParAdherent - reservedTotal);
+    const pct = distribution.quotaParAdherent > 0 ? Math.min(100, Math.round((reservedTotal / distribution.quotaParAdherent) * 100)) : 0;
+
+    const produitsDisponibles = distribution.denrees.filter(function (d) { return Mock.getDistributionRemainingQty(distribution, d.produitId) > 0; });
+
+    wrap.innerHTML =
+      "<h2>Reserver des denrees</h2>" +
+      '<p class="muted">Quota pour cette distribution : ' + reservedTotal + " / " + distribution.quotaParAdherent + " unite(s) reservee(s).</p>" +
+      '<div class="quota-bar"><span style="width:' + pct + '%"></span></div>' +
+      (quotaRestant === 0
+        ? '<div class="note-box" style="margin-top:12px;">Vous avez atteint votre quota pour cette distribution.</div>'
+        : produitsDisponibles.length === 0
+          ? '<div class="note-box" style="margin-top:12px;">Aucune denree disponible pour le moment.</div>'
+          : '<form id="reserve-form" style="margin-top:12px;">' +
+            '<div class="grid grid-2">' +
+            '<div class="field"><label for="rs-produit">Produit</label><select id="rs-produit">' +
+            produitsDisponibles.map(function (d) {
+              const stock = Mock.getStockProduit(d.produitId);
+              const remaining = Mock.getDistributionRemainingQty(distribution, d.produitId);
+              return '<option value="' + d.produitId + '">' + escapeHtml(stock ? stock.nom : "Produit") + " (" + remaining + " " + escapeHtml(stock ? stock.unite : "") + " restant)</option>";
+            }).join("") +
+            "</select></div>" +
+            '<div class="field"><label for="rs-quantite">Quantite</label><input id="rs-quantite" type="number" min="1" max="' + quotaRestant + '" value="1" required></div>' +
+            "</div>" +
+            '<div class="actions"><button type="submit">Reserver</button></div>' +
+            "</form>") +
+      renderMesReservations(distribution);
+
+    const form = document.getElementById("reserve-form");
+    if (form) {
+      form.addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        const produitId = Number(document.getElementById("rs-produit").value);
+        const quantite = Number(document.getElementById("rs-quantite").value);
+        const result = Mock.reserverStock(user.id, distribution.id, produitId, quantite);
+        if (!result.ok) {
+          Popups.toast(result.error);
+          return;
+        }
+        Popups.toast("Reservation confirmee !");
+        render();
+      });
+    }
+  }
+
+  function renderMesReservations(distribution) {
+    const mine = distribution.reservations.filter(function (r) { return r.adherentId === user.id; });
+    if (mine.length === 0) return "";
+    return '<h3 style="margin-top:18px;">Vos reservations</h3><ul>' +
+      mine.map(function (r) {
+        const stock = Mock.getStockProduit(r.produitId);
+        return "<li>" + r.quantite + " " + escapeHtml(stock ? stock.unite : "") + " de " + escapeHtml(stock ? stock.nom : "produit") + "</li>";
+      }).join("") + "</ul>";
+  }
+
+  render();
+</script>
+</body>
+</html>

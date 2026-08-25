@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Back-office - Candidatures benevoles</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="bo-content">
+  <section class="section">
+    <h1>Candidatures bénévoles</h1>
+    <p class="muted">Rechercher une candidature, consulter la motivation, valider ou refuser, ou la supprimer.</p>
+  </section>
+
+  <section class="section">
+    <div class="actions" style="justify-content:flex-end;">
+      <button type="button" id="btn-creer-candidature">Créer une candidature</button>
+    </div>
+    <div class="filters">
+      <div class="field"><label for="q">Candidat(e)</label><input id="q" type="text" placeholder="Rechercher..."></div>
+      <div class="field">
+        <label for="statut-filter">Statut</label>
+        <select id="statut-filter">
+          <option value="">Tous</option>
+          <option value="recue">Recue</option>
+          <option value="en_etude">En etude</option>
+          <option value="validee">Validee</option>
+          <option value="refusee">Refusee</option>
+          <option value="archivee">Archivee</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Candidat(e)</th><th>Recue</th><th>Statut</th></tr></thead>
+      <tbody id="results"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderBackofficeNav("candidatures");
+
+  if (guardBackoffice("bo-content")) {
+    const qInput = document.getElementById("q");
+    const statutFilter = document.getElementById("statut-filter");
+    const body = document.getElementById("results");
+
+    function render() {
+      const list = Mock.searchCandidatures({ q: qInput.value, statut: statutFilter.value });
+      body.innerHTML = list.length
+        ? list.map(function (c) {
+            const personne = Mock.getUser(c.personneId);
+            return '<tr class="clickable" data-id="' + c.id + '">' +
+              "<td>" + escapeHtml(personne ? Mock.userLabel(personne) : "Inconnu") + "</td>" +
+              "<td>" + timeAgo(c.date) + "</td>" +
+              '<td><span class="badge">' + c.statut + "</span></td>" +
+              "</tr>";
+          }).join("")
+        : '<tr><td colspan="3" class="muted">Aucune candidature ne correspond a cette recherche.</td></tr>';
+
+      body.querySelectorAll("[data-id]").forEach(function (row) {
+        row.addEventListener("click", function () { openCandidature(Number(row.dataset.id)); });
+      });
+    }
+
+    function openCandidature(id) {
+      const c = Mock.getCandidature(id);
+      if (!c) return;
+      const personne = Mock.getUser(c.personneId);
+
+      const box = Popups.open(
+        '<h3 class="popup-title">Candidature de ' + escapeHtml(personne ? Mock.userLabel(personne) : "Inconnu") + "</h3>" +
+        '<p class="muted">Recue ' + timeAgo(c.date) + " &middot; " + escapeHtml(personne ? personne.email : "") + "</p>" +
+        '<p><strong>Disponibilites :</strong> ' + escapeHtml(c.disponibilite || "-") + "</p>" +
+        '<p><strong>Motivation :</strong> ' + escapeHtml(c.motivation || "-") + "</p>" +
+        '<form id="candidature-form">' +
+        '<div class="field"><label for="cd-statut">Statut</label><select id="cd-statut">' +
+        ["recue", "en_etude", "validee", "refusee", "archivee"].map(function (s) {
+          return '<option value="' + s + '"' + (s === c.statut ? " selected" : "") + ">" + s + "</option>";
+        }).join("") +
+        "</select></div>" +
+        '<div class="field"><label for="cd-commentaire">Commentaire interne</label><textarea id="cd-commentaire">' + escapeHtml(c.commentaire || "") + "</textarea></div>" +
+        '<div class="note-box">Valider la candidature fait automatiquement passer le compte en type "benevole".</div>' +
+        '<div class="actions">' +
+        '<button type="submit">Enregistrer</button>' +
+        '<button type="button" class="btn-secondary" data-popup-close>Fermer</button>' +
+        '<button type="button" class="btn-danger" id="delete-candidature" style="margin-left:auto;">Supprimer</button>' +
+        "</div>" +
+        "</form>"
+      );
+
+      box.querySelector("#candidature-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        Mock.decideCandidature(c.id, document.getElementById("cd-statut").value, document.getElementById("cd-commentaire").value);
+        Popups.close();
+        Popups.toast("Candidature mise a jour.");
+        render();
+      });
+
+      box.querySelector("#delete-candidature").addEventListener("click", function () {
+        Popups.confirmAction("Supprimer definitivement cette candidature ?", function () {
+          Mock.deleteCandidature(c.id);
+          Popups.toast("Candidature supprimee.");
+          render();
+        });
+      });
+    }
+
+    function openCreerCandidature() {
+      const box = Popups.open(
+        '<h3 class="popup-title">Créer une candidature</h3>' +
+        '<form id="creer-candidature-form">' +
+        Popups.entitySearchField("nca-personne", {
+          label: "Candidat(e) (nom ou email)",
+          placeholder: "Rechercher un compte...",
+          required: true,
+        }) +
+        '<div class="field"><label for="nca-dispo">Disponibilites</label><input id="nca-dispo" placeholder="Ex: week-ends, mercredi apres-midi"></div>' +
+        '<div class="field"><label for="nca-motiv">Motivation</label><textarea id="nca-motiv"></textarea></div>' +
+        '<div class="actions"><button type="submit">Créer</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+        "</form>"
+      );
+
+      Popups.wireEntitySearch("nca-personne", function (query) {
+        return Mock.searchComptes({ q: query });
+      }, function (u) {
+        const label = Mock.userLabel(u) + " (" + u.email + ")";
+        return { label: label, html: escapeHtml(Mock.userLabel(u)) + ' <span class="muted">' + escapeHtml(u.email) + " · " + userTypeLabel(u.type) + "</span>" };
+      });
+
+      box.querySelector("#creer-candidature-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        const personneId = document.getElementById("nca-personne-id").value;
+        if (!personneId) { Popups.toast("Choisissez un(e) candidat(e) dans la liste proposee."); return; }
+        Mock.createCandidatureAdmin(Number(personneId), {
+          disponibilite: document.getElementById("nca-dispo").value,
+          motivation: document.getElementById("nca-motiv").value,
+        });
+        Popups.close();
+        Popups.toast("Candidature creee.");
+        render();
+      });
+    }
+
+    document.getElementById("btn-creer-candidature").addEventListener("click", openCreerCandidature);
+
+    qInput.addEventListener("input", render);
+    statutFilter.addEventListener("change", render);
+    render();
+
+    const preselectId = new URLSearchParams(window.location.search).get("id");
+    if (preselectId) openCandidature(Number(preselectId));
+  }
+</script>
+</body>
+</html>

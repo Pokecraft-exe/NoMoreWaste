@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Back-office - Recettes</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="bo-content">
+  <section class="section">
+    <h1>Recettes &amp; cours de cuisine</h1>
+    <p class="muted">Rechercher une recette, la consulter, la modifier ou la supprimer.</p>
+  </section>
+
+  <section class="section">
+    <div class="actions" style="justify-content:flex-end;">
+      <button type="button" id="btn-creer-recette">Créer une recette</button>
+    </div>
+    <div class="filters">
+      <div class="field"><label for="q">Nom ou ingredient</label><input id="q" type="text" placeholder="Rechercher..."></div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Titre</th><th>Ingredients</th><th>Outils</th></tr></thead>
+      <tbody id="results"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderBackofficeNav("recettes");
+
+  if (guardBackoffice("bo-content")) {
+    const qInput = document.getElementById("q");
+    const body = document.getElementById("results");
+
+    function render() {
+      const q = qInput.value;
+      const list = q
+        ? Mock.listRecettes().filter(function (r) {
+            const ql = q.toLowerCase();
+            return r.titre.toLowerCase().includes(ql) || r.ingredients.some(function (i) { return i.toLowerCase().includes(ql); });
+          })
+        : Mock.listRecettes();
+
+      body.innerHTML = list.length
+        ? list.map(function (r) {
+            return '<tr class="clickable" data-id="' + r.id + '">' +
+              "<td>" + escapeHtml(r.titre) + "</td>" +
+              "<td>" + r.ingredients.length + "</td>" +
+              "<td>" + escapeHtml(r.outils.join(", ")) + "</td>" +
+              "</tr>";
+          }).join("")
+        : '<tr><td colspan="3" class="muted">Aucune recette ne correspond a cette recherche.</td></tr>';
+
+      body.querySelectorAll("[data-id]").forEach(function (row) {
+        row.addEventListener("click", function () { openRecette(Number(row.dataset.id)); });
+      });
+    }
+
+    function openRecette(id) {
+      const r = Mock.getRecette(id);
+      if (!r) return;
+      const box = Popups.open(
+        '<h3 class="popup-title">' + escapeHtml(r.titre) + "</h3>" +
+        '<form id="recette-form">' +
+        '<div class="field"><label for="r-titre">Titre</label><input id="r-titre" value="' + escapeHtml(r.titre) + '" required></div>' +
+        '<div class="field"><label for="r-ingredients">Ingredients (separes par des virgules)</label><input id="r-ingredients" value="' + escapeHtml(r.ingredients.join(", ")) + '" required></div>' +
+        '<div class="field"><label for="r-outils">Outils (separes par des virgules)</label><input id="r-outils" value="' + escapeHtml(r.outils.join(", ")) + '"></div>' +
+        '<div class="field"><label for="r-contenu">Preparation</label><textarea id="r-contenu" required>' + escapeHtml(r.contenu) + "</textarea></div>" +
+        '<div class="field"><label for="r-video">Lien video (optionnel)</label><input id="r-video" value="' + escapeHtml(r.video || "") + '"></div>' +
+        '<div class="actions">' +
+        '<button type="submit">Enregistrer</button>' +
+        '<button type="button" class="btn-secondary" data-popup-close>Fermer</button>' +
+        '<button type="button" class="btn-danger" id="delete-recette" style="margin-left:auto;">Supprimer</button>' +
+        "</div>" +
+        "</form>",
+        { wide: true }
+      );
+
+      box.querySelector("#recette-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        Mock.updateRecette(r.id, {
+          titre: document.getElementById("r-titre").value,
+          ingredients: document.getElementById("r-ingredients").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean),
+          outils: document.getElementById("r-outils").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean),
+          contenu: document.getElementById("r-contenu").value,
+          video: document.getElementById("r-video").value || null,
+        });
+        Popups.close();
+        Popups.toast("Recette mise a jour.");
+        render();
+      });
+
+      box.querySelector("#delete-recette").addEventListener("click", function () {
+        Popups.confirmAction("Supprimer definitivement cette recette ?", function () {
+          Mock.deleteRecette(r.id);
+          Popups.toast("Recette supprimee.");
+          render();
+        });
+      });
+    }
+
+    function openCreerRecette() {
+      const box = Popups.open(
+        '<h3 class="popup-title">Créer une recette</h3>' +
+        '<form id="creer-recette-form">' +
+        '<div class="field"><label for="nr-titre">Titre</label><input id="nr-titre" required></div>' +
+        '<div class="field"><label for="nr-ingredients">Ingredients (separes par des virgules)</label><input id="nr-ingredients" required></div>' +
+        '<div class="field"><label for="nr-outils">Outils (separes par des virgules)</label><input id="nr-outils"></div>' +
+        '<div class="field"><label for="nr-contenu">Preparation</label><textarea id="nr-contenu" required></textarea></div>' +
+        '<div class="field"><label for="nr-video">Lien video (optionnel)</label><input id="nr-video"></div>' +
+        '<div class="actions"><button type="submit">Créer</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+        "</form>",
+        { wide: true }
+      );
+
+      box.querySelector("#creer-recette-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        Mock.createRecette({
+          titre: document.getElementById("nr-titre").value,
+          ingredients: document.getElementById("nr-ingredients").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean),
+          outils: document.getElementById("nr-outils").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean),
+          contenu: document.getElementById("nr-contenu").value,
+          video: document.getElementById("nr-video").value || null,
+        });
+        Popups.close();
+        Popups.toast("Recette creee.");
+        render();
+      });
+    }
+
+    document.getElementById("btn-creer-recette").addEventListener("click", openCreerRecette);
+
+    qInput.addEventListener("input", render);
+    render();
+  }
+</script>
+</body>
+</html>

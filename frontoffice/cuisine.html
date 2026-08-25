@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Cours de cuisine</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap">
+  <section class="section">
+    <h1>Recettes &amp; cours de cuisine anti-gaspi</h1>
+    <p class="muted">Trouvez une recette selon les ingredients qu'il vous reste, les outils dont vous disposez, ou le nom du plat.</p>
+  </section>
+
+  <section class="section">
+    <div class="filters">
+      <div class="field">
+        <label for="f-ingredient">Ingredient</label>
+        <input id="f-ingredient" type="text" placeholder="Ex: pain, carotte...">
+      </div>
+      <div class="field">
+        <label for="f-outil">Outil de cuisine</label>
+        <input id="f-outil" type="text" placeholder="Ex: mixeur, four...">
+      </div>
+      <div class="field">
+        <label for="f-nom">Nom du plat</label>
+        <input id="f-nom" type="text" placeholder="Ex: soupe, pesto...">
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" id="search-btn">Rechercher</button>
+      <button type="button" id="reset-btn">Reinitialiser</button>
+    </div>
+    <div id="results" class="grid grid-auto"></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderTopNav("cuisine");
+
+  const ingInput = document.getElementById("f-ingredient");
+  const outilInput = document.getElementById("f-outil");
+  const nomInput = document.getElementById("f-nom");
+  const results = document.getElementById("results");
+
+  function render(list) {
+    if (list.length === 0) {
+      results.innerHTML = '<div class="empty">Aucune recette ne correspond a ces criteres.</div>';
+      return;
+    }
+    results.innerHTML = list.map(function (r) {
+      return '<button type="button" class="card-link" data-recette="' + r.id + '" style="text-align:left;cursor:pointer;">' +
+        '<div class="card-title">' + escapeHtml(r.titre) + "</div>" +
+        '<div class="card-meta">' +
+        '<span>' + r.ingredients.length + ' ingredients</span>' +
+        '<span>' + r.outils.join(", ") + "</span>" +
+        "</div>" +
+        "</button>";
+    }).join("");
+
+    results.querySelectorAll("[data-recette]").forEach(function (btn) {
+      btn.addEventListener("click", function () { openRecette(Number(btn.dataset.recette)); });
+    });
+  }
+
+  function openRecette(id) {
+    const r = Mock.getRecette(id);
+    Popups.open(
+      '<h3 class="popup-title">' + escapeHtml(r.titre) + "</h3>" +
+      '<h4>Ingredients</h4>' +
+      '<div class="chip-row">' + r.ingredients.map(function (i) { return '<span class="chip">' + escapeHtml(i) + "</span>"; }).join("") + "</div>" +
+      '<h4>Outils necessaires</h4>' +
+      '<div class="chip-row">' + r.outils.map(function (o) { return '<span class="chip">' + escapeHtml(o) + "</span>"; }).join("") + "</div>" +
+      '<h4>Preparation</h4>' +
+      "<p>" + escapeHtml(r.contenu) + "</p>" +
+      (r.video ? '<p><a href="' + r.video + '" target="_blank">Voir la video</a></p>' : '<p class="muted">Pas de video disponible pour cette recette.</p>')
+    );
+  }
+
+  function search() {
+    render(Mock.searchRecettes({
+      ingredient: ingInput.value,
+      outil: outilInput.value,
+      nom: nomInput.value,
+    }));
+  }
+
+  document.getElementById("search-btn").addEventListener("click", search);
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    ingInput.value = ""; outilInput.value = ""; nomInput.value = "";
+    render(Mock.listRecettes());
+  });
+  [ingInput, outilInput, nomInput].forEach(function (input) {
+    input.addEventListener("input", search);
+  });
+
+  render(Mock.listRecettes());
+</script>
+</body>
+</html>

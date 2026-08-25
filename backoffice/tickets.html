@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Back-office - Tickets</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="bo-content">
+  <section class="section">
+    <h1>Tickets d'aide</h1>
+    <p class="muted">Messages envoyes via le bouton "Aide" (avec ou sans compte). Repondre marque le ticket comme traite et,
+    si l'auteur est identifie, ajoute la reponse a ses notifications.</p>
+  </section>
+
+  <section class="section">
+    <div class="filters">
+      <div class="field"><label for="q">Sujet, message ou auteur</label><input id="q" type="text" placeholder="Rechercher..."></div>
+      <div class="field">
+        <label for="statut-filter">Statut</label>
+        <select id="statut-filter">
+          <option value="">Tous</option>
+          <option value="ouvert">Ouvert</option>
+          <option value="traite">Traite</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Sujet</th><th>De</th><th>Recu</th><th>Statut</th></tr></thead>
+      <tbody id="results"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderBackofficeNav("tickets");
+
+  if (guardBackoffice("bo-content")) {
+    const admin = Mock.getCurrentUser();
+    const qInput = document.getElementById("q");
+    const statutFilter = document.getElementById("statut-filter");
+    const body = document.getElementById("results");
+
+    function ticketAuteurLabel(t) {
+      if (t.auteurId) {
+        const u = Mock.getUser(t.auteurId);
+        return u ? Mock.userLabel(u) : "Inconnu";
+      }
+      return (t.contactNom || "Anonyme") + " (invite)";
+    }
+
+    function render() {
+      const list = Mock.searchTickets({ q: qInput.value, statut: statutFilter.value });
+      body.innerHTML = list.length
+        ? list.map(function (t) {
+            return '<tr class="clickable" data-id="' + t.id + '">' +
+              "<td>" + escapeHtml(t.sujet) + "</td>" +
+              "<td>" + escapeHtml(ticketAuteurLabel(t)) + "</td>" +
+              "<td>" + timeAgo(t.date) + "</td>" +
+              '<td><span class="badge ' + (t.statut === "traite" ? "badge-success" : "badge-warning") + '">' + t.statut + "</span></td>" +
+              "</tr>";
+          }).join("")
+        : '<tr><td colspan="4" class="muted">Aucun ticket ne correspond a cette recherche.</td></tr>';
+
+      body.querySelectorAll("[data-id]").forEach(function (row) {
+        row.addEventListener("click", function () { openTicket(Number(row.dataset.id)); });
+      });
+    }
+
+    function openTicket(id) {
+      const t = Mock.getTicket(id);
+      if (!t) return;
+
+      const box = Popups.open(
+        '<h3 class="popup-title">' + escapeHtml(t.sujet) + "</h3>" +
+        '<p class="muted">De ' + escapeHtml(ticketAuteurLabel(t)) +
+        (t.contactEmail ? " &middot; " + escapeHtml(t.contactEmail) : "") +
+        " &middot; " + timeAgo(t.date) + "</p>" +
+        '<div class="card">' + escapeHtml(t.message) + "</div>" +
+        (t.statut === "traite"
+          ? '<div class="note-box" style="margin-top:12px;">Reponse envoyee ' + timeAgo(t.traiteAt) + " : " + escapeHtml(t.reponse) + "</div>"
+          : "") +
+        '<form id="ticket-form" style="margin-top:14px;">' +
+        '<div class="field"><label for="tk-reponse">' + (t.statut === "traite" ? "Modifier la reponse" : "Reponse") + '</label><textarea id="tk-reponse" required>' + escapeHtml(t.reponse || "") + "</textarea></div>" +
+        '<div class="actions">' +
+        '<button type="submit">' + (t.statut === "traite" ? "Mettre a jour la reponse" : "Repondre et marquer traite") + "</button>" +
+        '<button type="button" class="btn-secondary" data-popup-close>Fermer</button>' +
+        "</div>" +
+        "</form>"
+      );
+
+      box.querySelector("#ticket-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        Mock.repondreTicket(t.id, admin.id, document.getElementById("tk-reponse").value);
+        Popups.close();
+        Popups.toast("Reponse envoyee.");
+        render();
+      });
+    }
+
+    qInput.addEventListener("input", render);
+    statutFilter.addEventListener("change", render);
+    render();
+
+    const preselectId = new URLSearchParams(window.location.search).get("id");
+    if (preselectId) openTicket(Number(preselectId));
+  }
+</script>
+</body>
+</html>

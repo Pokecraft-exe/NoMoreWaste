@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Back-office - Annonces</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="bo-content">
+  <section class="section">
+    <h1>Annonces</h1>
+    <p class="muted">Rechercher une annonce et la supprimer si necessaire. Pour respecter la confidentialite des echanges entre
+    particuliers, le back-office ne permet ni de consulter les messages personnels d'une annonce, ni de modifier son contenu.</p>
+  </section>
+
+  <section class="section">
+    <div class="filters">
+      <div class="field"><label for="q">Titre ou description</label><input id="q" type="text" placeholder="Rechercher..."></div>
+      <div class="field">
+        <label for="cat-filter">Categorie</label>
+        <select id="cat-filter"><option value="">Toutes</option></select>
+      </div>
+      <div class="field">
+        <label for="etat-filter">Etat</label>
+        <select id="etat-filter"><option value="">Tous</option></select>
+      </div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Titre</th><th>Categorie</th><th>Auteur</th><th>Etat</th><th>Prix</th><th>Publiee</th></tr></thead>
+      <tbody id="results"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderBackofficeNav("annonces");
+
+  if (guardBackoffice("bo-content")) {
+    const qInput = document.getElementById("q");
+    const catFilter = document.getElementById("cat-filter");
+    const etatFilter = document.getElementById("etat-filter");
+    const body = document.getElementById("results");
+
+    Mock.CATEGORIES_ANNONCE.forEach(function (c) {
+      const opt = document.createElement("option");
+      opt.value = c.value; opt.textContent = c.label;
+      catFilter.appendChild(opt);
+    });
+    Mock.ETATS_ANNONCE.forEach(function (e) {
+      const opt = document.createElement("option");
+      opt.value = e.value; opt.textContent = e.label;
+      etatFilter.appendChild(opt);
+    });
+
+    function render() {
+      let list = Mock.listAnnonces({ categorie: catFilter.value, query: qInput.value });
+      if (etatFilter.value) list = list.filter(function (a) { return a.etat === etatFilter.value; });
+
+      body.innerHTML = list.length
+        ? list.map(function (a) {
+            const cat = Mock.CATEGORIES_ANNONCE.find(function (c) { return c.value === a.categorie; });
+            const etat = Mock.ETATS_ANNONCE.find(function (e) { return e.value === a.etat; });
+            const auteur = Mock.getUser(a.auteurId);
+            return '<tr class="clickable" data-id="' + a.id + '">' +
+              "<td>" + escapeHtml(a.titre) + "</td>" +
+              "<td>" + cat.label + "</td>" +
+              "<td>" + escapeHtml(auteur ? Mock.userLabel(auteur) : "Inconnu") + "</td>" +
+              '<td><span class="badge badge-' + etat.tone + '">' + etat.label + "</span></td>" +
+              "<td>" + (a.prix != null ? a.prix + " €" : "Gratuit") + "</td>" +
+              "<td>" + timeAgo(a.createdAt) + "</td>" +
+              "</tr>";
+          }).join("")
+        : '<tr><td colspan="6" class="muted">Aucune annonce ne correspond a cette recherche.</td></tr>';
+
+      body.querySelectorAll("[data-id]").forEach(function (row) {
+        row.addEventListener("click", function () { openAnnonce(Number(row.dataset.id)); });
+      });
+    }
+
+    function openAnnonce(id) {
+      const a = Mock.getAnnonce(id);
+      if (!a) return;
+      const cat = Mock.CATEGORIES_ANNONCE.find(function (c) { return c.value === a.categorie; });
+      const etat = Mock.ETATS_ANNONCE.find(function (e) { return e.value === a.etat; });
+      const auteur = Mock.getUser(a.auteurId);
+
+      const box = Popups.open(
+        '<h3 class="popup-title">' + escapeHtml(a.titre) + "</h3>" +
+        '<div class="card-meta" style="margin-bottom:10px;">' +
+        '<span class="badge">' + cat.label + "</span>" +
+        '<span class="badge badge-' + etat.tone + '">' + etat.label + "</span>" +
+        "<span>" + (a.prix != null ? a.prix + " €" : "Gratuit") + "</span>" +
+        "<span>par " + escapeHtml(auteur ? Mock.userLabel(auteur) : "Inconnu") + "</span>" +
+        "<span>" + timeAgo(a.createdAt) + "</span>" +
+        "</div>" +
+        "<p>" + escapeHtml(a.description) + "</p>" +
+        '<div class="note-box">Contenu en lecture seule : les messages personnels et la negociation de prix de cette annonce ne sont pas accessibles depuis le back-office, et son contenu ne peut pas etre modifie ici.</div>' +
+        '<div class="actions" style="margin-top:14px;">' +
+        '<button type="button" class="btn-secondary" data-popup-close>Fermer</button>' +
+        '<button type="button" class="btn-danger" id="delete-annonce">Supprimer l\'annonce</button>' +
+        "</div>"
+      );
+
+      box.querySelector("#delete-annonce").addEventListener("click", function () {
+        Popups.confirmAction("Supprimer definitivement cette annonce ?", function () {
+          Mock.deleteAnnonce(a.id);
+          Popups.toast("Annonce supprimee.");
+          render();
+        });
+      });
+    }
+
+    qInput.addEventListener("input", render);
+    catFilter.addEventListener("change", render);
+    etatFilter.addEventListener("change", render);
+    render();
+  }
+</script>
+</body>
+</html>

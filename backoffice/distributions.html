@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Back-office - Distributions</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="bo-content">
+  <section class="section">
+    <h1>Distributions</h1>
+    <p class="muted">Rechercher une distribution, choisir les denrees a distribuer (parmi le stock disponible) et le quota par
+    adherent(e), et affecter un role aux bénévoles participants.</p>
+  </section>
+
+  <section class="section">
+    <div class="actions" style="justify-content:flex-end;">
+      <button type="button" id="btn-creer-distribution">Créer une distribution</button>
+    </div>
+    <div class="filters">
+      <div class="field"><label for="q">Lieu</label><input id="q" type="text" placeholder="Rechercher..."></div>
+      <div class="field">
+        <label for="statut-filter">Statut</label>
+        <select id="statut-filter">
+          <option value="">Tous</option>
+          <option value="planifiee">Planifiee</option>
+          <option value="confirmee">Confirmee</option>
+          <option value="en_cours">En cours</option>
+          <option value="terminee">Terminee</option>
+          <option value="annulee">Annulee</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Lieu</th><th>Date</th><th>Statut</th><th>Bénévoles</th><th>Reservations</th></tr></thead>
+      <tbody id="results"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderBackofficeNav("distributions");
+
+  if (guardBackoffice("bo-content")) {
+    const qInput = document.getElementById("q");
+    const statutFilter = document.getElementById("statut-filter");
+    const body = document.getElementById("results");
+
+    function render() {
+      const list = Mock.searchDistributions({ q: qInput.value, statut: statutFilter.value });
+      body.innerHTML = list.length
+        ? list.map(function (d) {
+            return '<tr class="clickable" data-id="' + d.id + '">' +
+              "<td>" + escapeHtml(d.lieu) + "</td>" +
+              "<td>" + d.date + " " + (d.heure || "") + "</td>" +
+              '<td><span class="badge">' + d.statut + "</span></td>" +
+              "<td>" + d.benevolesAffectes.length + " / " + d.benevolesParticipants.length + " affecte(s)</td>" +
+              "<td>" + d.reservations.length + "</td>" +
+              "</tr>";
+          }).join("")
+        : '<tr><td colspan="5" class="muted">Aucune distribution ne correspond a cette recherche.</td></tr>';
+
+      body.querySelectorAll("[data-id]").forEach(function (row) {
+        row.addEventListener("click", function () { openDistribution(Number(row.dataset.id)); });
+      });
+    }
+
+    function openDistribution(id) {
+      const d = Mock.getDistribution(id);
+      if (!d) return;
+      const stocks = Mock.listStocks();
+      const participants = d.benevolesParticipants.map(function (bid) { return Mock.getUser(bid); }).filter(Boolean);
+
+      const box = Popups.open(
+        '<h3 class="popup-title">Distribution : ' + escapeHtml(d.lieu) + "</h3>" +
+        '<form id="distribution-form">' +
+        '<div class="field"><label for="d-lieu">Lieu</label><input id="d-lieu" value="' + escapeHtml(d.lieu) + '" required></div>' +
+        '<div class="grid grid-2">' +
+        '<div class="field"><label for="d-date">Date</label><input id="d-date" type="date" value="' + d.date + '" required></div>' +
+        '<div class="field"><label for="d-heure">Heure</label><input id="d-heure" type="time" value="' + (d.heure || "") + '"></div>' +
+        "</div>" +
+        '<div class="grid grid-2">' +
+        '<div class="field"><label for="d-statut">Statut</label><select id="d-statut">' +
+        ["planifiee", "confirmee", "en_cours", "terminee", "annulee"].map(function (s) {
+          return '<option value="' + s + '"' + (s === d.statut ? " selected" : "") + ">" + s + "</option>";
+        }).join("") +
+        "</select></div>" +
+        '<div class="field"><label for="d-quota">Quota par adherent(e) (unites, tous produits confondus)</label><input id="d-quota" type="number" min="0" value="' + d.quotaParAdherent + '" required></div>' +
+        "</div>" +
+
+        '<h4 style="margin-top:16px;">Denrees allouees (depuis le stock disponible)</h4>' +
+        '<div class="table-wrap"><table><thead><tr><th>Produit</th><th>Disponible</th><th>Quantite allouee</th></tr></thead><tbody>' +
+        stocks.map(function (s) {
+          const current = d.denrees.find(function (den) { return den.produitId === s.id; });
+          return "<tr><td>" + escapeHtml(s.nom) + "</td><td>" + s.quantiteDisponible + " " + escapeHtml(s.unite) + "</td>" +
+            '<td><input type="number" min="0" max="' + s.quantiteDisponible + '" class="denree-input" data-produit="' + s.id + '" value="' + (current ? current.quantite : 0) + '"></td></tr>';
+        }).join("") +
+        "</tbody></table></div>" +
+
+        '<h4 style="margin-top:16px;">Bénévoles participants</h4>' +
+        (participants.length === 0
+          ? '<p class="muted">Aucun(e) bénévole n\'a encore indique etre disponible pour cette distribution.</p>'
+          : '<div class="table-wrap"><table><thead><tr><th>Sur place</th><th>Bénévole</th><th>Role</th></tr></thead><tbody>' +
+            participants.map(function (p) {
+              const current = d.benevolesAffectes.find(function (a) { return a.benevoleId === p.id; });
+              return "<tr><td><input type=\"checkbox\" class=\"benevole-check\" data-benevole=\"" + p.id + "\"" + (current ? " checked" : "") + "></td>" +
+                "<td>" + escapeHtml(Mock.userLabel(p)) + "</td>" +
+                '<td><input type="text" class="benevole-role" data-benevole="' + p.id + '" placeholder="Ex: gestion des stocks, accueil des beneficiaires" value="' + escapeHtml(current ? current.role : "") + '"></td></tr>';
+            }).join("") +
+            "</tbody></table></div>") +
+
+        '<div class="actions" style="margin-top:16px;">' +
+        '<button type="submit">Enregistrer</button>' +
+        '<button type="button" class="btn-secondary" data-popup-close>Fermer</button>' +
+        '<button type="button" class="btn-danger" id="delete-distribution" style="margin-left:auto;">Supprimer</button>' +
+        "</div>" +
+        "</form>",
+        { wide: true }
+      );
+
+      box.querySelector("#distribution-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+
+        const denrees = [];
+        box.querySelectorAll(".denree-input").forEach(function (input) {
+          const quantite = Number(input.value) || 0;
+          if (quantite > 0) denrees.push({ produitId: Number(input.dataset.produit), quantite: quantite });
+        });
+
+        const affectations = [];
+        box.querySelectorAll(".benevole-check").forEach(function (checkbox) {
+          if (!checkbox.checked) return;
+          const benevoleId = Number(checkbox.dataset.benevole);
+          const roleInput = box.querySelector('.benevole-role[data-benevole="' + benevoleId + '"]');
+          affectations.push({ benevoleId: benevoleId, role: (roleInput && roleInput.value) || "Non precise" });
+        });
+
+        Mock.updateDistribution(d.id, {
+          lieu: document.getElementById("d-lieu").value,
+          date: document.getElementById("d-date").value,
+          heure: document.getElementById("d-heure").value,
+          statut: document.getElementById("d-statut").value,
+        });
+        Mock.setDistributionQuota(d.id, document.getElementById("d-quota").value);
+        Mock.setDistributionDenrees(d.id, denrees);
+        Mock.setDistributionAffectations(d.id, affectations);
+
+        Popups.close();
+        Popups.toast("Distribution mise a jour.");
+        render();
+      });
+
+      box.querySelector("#delete-distribution").addEventListener("click", function () {
+        Popups.confirmAction("Supprimer definitivement cette distribution ?", function () {
+          Mock.deleteDistribution(d.id);
+          Popups.toast("Distribution supprimee.");
+          render();
+        });
+      });
+    }
+
+    function openCreerDistribution() {
+      const box = Popups.open(
+        '<h3 class="popup-title">Créer une distribution</h3>' +
+        '<form id="creer-distribution-form">' +
+        '<div class="field"><label for="ndist-lieu">Lieu</label><input id="ndist-lieu" required></div>' +
+        '<div class="grid grid-2">' +
+        '<div class="field"><label for="ndist-date">Date</label><input id="ndist-date" type="date" required></div>' +
+        '<div class="field"><label for="ndist-heure">Heure</label><input id="ndist-heure" type="time"></div>' +
+        "</div>" +
+        '<div class="grid grid-2">' +
+        '<div class="field"><label for="ndist-statut">Statut</label><select id="ndist-statut">' +
+        ["planifiee", "confirmee", "en_cours", "terminee", "annulee"].map(function (s) {
+          return '<option value="' + s + '">' + s + "</option>";
+        }).join("") +
+        "</select></div>" +
+        '<div class="field"><label for="ndist-quota">Quota par adherent(e)</label><input id="ndist-quota" type="number" min="0" value="1" required></div>' +
+        "</div>" +
+        '<div class="note-box">Les denrees allouees et les benevoles participants se gerent ensuite depuis la fiche de la distribution.</div>' +
+        '<div class="actions"><button type="submit">Créer</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+        "</form>"
+      );
+
+      box.querySelector("#creer-distribution-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        Mock.createDistribution({
+          lieu: document.getElementById("ndist-lieu").value,
+          date: document.getElementById("ndist-date").value,
+          heure: document.getElementById("ndist-heure").value,
+          statut: document.getElementById("ndist-statut").value,
+          quotaParAdherent: document.getElementById("ndist-quota").value,
+        });
+        Popups.close();
+        Popups.toast("Distribution creee.");
+        render();
+      });
+    }
+
+    document.getElementById("btn-creer-distribution").addEventListener("click", openCreerDistribution);
+
+    qInput.addEventListener("input", render);
+    statutFilter.addEventListener("change", render);
+    render();
+
+    const preselectId = new URLSearchParams(window.location.search).get("id");
+    if (preselectId) openDistribution(Number(preselectId));
+  }
+</script>
+</body>
+</html>

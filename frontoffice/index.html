@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Accueil</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap">
+  <section class="section">
+    <h1>Bienvenue sur NO MORE WASTE</h1>
+    <p class="muted">Le forum le plus suivi du moment, la prochaine collecte et la prochaine distribution a ne pas manquer.</p>
+  </section>
+
+  <section class="hero-grid" id="hero-grid">
+    <button type="button" class="hero-card trending" id="trending-card">
+      <div>
+        <div class="hero-label">Forum tendance</div>
+        <h3 id="trending-title">&hellip;</h3>
+        <p id="trending-excerpt"></p>
+      </div>
+      <div class="hero-cta" id="trending-meta">Voir le forum &rarr;</div>
+    </button>
+
+    <button type="button" class="hero-card collecte" id="collecte-card" style="display:none;">
+      <div>
+        <div class="hero-label">Prochaine collecte</div>
+        <h3 id="collecte-title">&hellip;</h3>
+        <p id="collecte-desc"></p>
+      </div>
+      <div class="hero-cta" id="collecte-cta">En savoir plus &rarr;</div>
+    </button>
+
+    <button type="button" class="hero-card distribution" id="distribution-card" style="display:none;">
+      <div>
+        <div class="hero-label">Prochaine distribution</div>
+        <h3 id="distribution-title">&hellip;</h3>
+        <p id="distribution-desc"></p>
+      </div>
+      <div class="hero-cta">Voir le detail &rarr;</div>
+    </button>
+  </section>
+
+  <section class="section grid grid-2">
+    <div class="card">
+      <h3>Forums de conseil</h3>
+      <p class="muted">Partagez vos astuces anti-gaspi et decouvrez celles de la communaute.</p>
+      <a class="btn btn-secondary" href="forums.html">Voir les forums</a>
+    </div>
+    <div class="card">
+      <h3>Recettes anti-gaspi</h3>
+      <p class="muted">Trouvez une recette selon vos ingredients ou vos ustensiles disponibles.</p>
+      <a class="btn btn-secondary" href="cuisine.html">Voir les recettes</a>
+    </div>
+  </section>
+</main>
+
+<p class="footer-hint">Maquette front-end - donnees fictives stockees localement (aucun appel au back-end).</p>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderTopNav("accueil");
+
+  const user = Mock.getCurrentUser();
+
+  const topForum = Mock.topTrending(1)[0];
+  if (topForum) {
+    document.getElementById("trending-title").textContent = topForum.titre;
+    document.getElementById("trending-excerpt").textContent = topForum.message.length > 120 ? topForum.message.slice(0, 120) + "..." : topForum.message;
+    document.getElementById("trending-meta").textContent = topForum.messages.length + " reponse(s) - " + topForum.vues + " vues";
+    document.getElementById("trending-card").addEventListener("click", function () {
+      window.location.href = "forum.html?id=" + topForum.id;
+    });
+  } else {
+    document.getElementById("trending-title").textContent = "Aucun forum pour le moment";
+    document.getElementById("trending-card").disabled = true;
+  }
+
+  const showCollecte = !Mock.isAdherent(user);
+  if (showCollecte) {
+    const collecte = Mock.getNextCollecte();
+    if (collecte) {
+      const collecteCard = document.getElementById("collecte-card");
+      collecteCard.style.display = "";
+      document.getElementById("collecte-title").textContent = collecte.lieu;
+      document.getElementById("collecte-desc").textContent =
+        "Le " + formatDateFr(collecte.date) + " a " + collecte.heure + (collecte.partenaire ? " - avec " + collecte.partenaire : "");
+
+      const isStaff = Mock.isStaff(user);
+      const isConfirmedBenevole = Mock.isBenevoleConfirmeCollecte(user, collecte);
+      const canProposeDenrees = Mock.canProposeCollecteDenrees(user, collecte);
+      const isBenevoleOrStaff = Mock.isBenevole(user) || isStaff;
+
+      let ctaText = "Devenir bénévole pour y participer →";
+      if (isStaff || isConfirmedBenevole) ctaText = "Gerer les denrees de cette collecte →";
+      else if (canProposeDenrees) ctaText = "Proposer des denrees →";
+      else if (isBenevoleOrStaff) ctaText = "Participer a cette collecte →";
+      document.getElementById("collecte-cta").textContent = ctaText;
+
+      collecteCard.addEventListener("click", function () {
+        if (isStaff || isConfirmedBenevole || canProposeDenrees) {
+          window.location.href = "collecte.html?id=" + collecte.id;
+        } else if (isBenevoleOrStaff) {
+          openParticiperCollecteForm(collecte);
+        } else if (user) {
+          openDevenirBenevoleForm(collecte);
+        } else {
+          openConnexionRequise("Cette collecte est reservee aux bénévoles. Connectez-vous ou inscrivez-vous pour deposer une candidature.");
+        }
+      });
+    }
+  }
+
+  const nextDistribution = Mock.getNextDistribution();
+  if (nextDistribution) {
+    const distributionCard = document.getElementById("distribution-card");
+    distributionCard.style.display = "";
+    document.getElementById("distribution-title").textContent = nextDistribution.lieu;
+    document.getElementById("distribution-desc").textContent =
+      "Le " + formatDateFr(nextDistribution.date) + " a " + nextDistribution.heure;
+    distributionCard.addEventListener("click", function () {
+      window.location.href = "distribution.html?id=" + nextDistribution.id;
+    });
+  }
+
+  function formatDateFr(iso) {
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  }
+
+  function openConnexionRequise(message) {
+    Popups.open(
+      '<h3 class="popup-title">Connexion requise</h3>' +
+      "<p>" + escapeHtml(message) + "</p>" +
+      '<div class="actions"><a class="btn" href="connexion-inscription.html">Se connecter / s\'inscrire</a></div>'
+    );
+  }
+
+  function openDevenirBenevoleForm(collecte) {
+    const box = Popups.open(
+      '<h3 class="popup-title">Devenir bénévole</h3>' +
+      '<p class="muted">Cette collecte du ' + escapeHtml(formatDateFr(collecte.date)) + ' est reservee aux bénévoles. Deposez votre candidature pour rejoindre l\'equipe.</p>' +
+      '<form id="benevole-form">' +
+      '<div class="field"><label for="bv-dispo">Disponibilites</label><input id="bv-dispo" placeholder="Ex: week-ends, mercredi apres-midi" required></div>' +
+      '<div class="field"><label for="bv-motiv">Motivation</label><textarea id="bv-motiv" placeholder="Pourquoi souhaitez-vous devenir bénévole ?" required></textarea></div>' +
+      '<div class="actions"><button type="submit">Envoyer ma candidature</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+      "</form>"
+    );
+    box.querySelector("#benevole-form").addEventListener("submit", function (evt) {
+      evt.preventDefault();
+      Mock.candidaterBenevole(user.id, {
+        disponibilite: document.getElementById("bv-dispo").value,
+        motivation: document.getElementById("bv-motiv").value,
+      });
+      Popups.close();
+      Popups.toast("Candidature envoyee ! Votre profil est desormais bénévole (demo).");
+      setTimeout(function () { location.reload(); }, 900);
+    });
+  }
+
+  function openParticiperCollecteForm(collecte) {
+    const box = Popups.open(
+      '<h3 class="popup-title">Participer a la collecte</h3>' +
+      '<p class="muted">' + escapeHtml(collecte.lieu) + ' - ' + escapeHtml(formatDateFr(collecte.date)) + " a " + escapeHtml(collecte.heure) + '</p>' +
+      '<form id="participer-form">' +
+      '<div class="field"><label for="pc-role">Role souhaite</label><input id="pc-role" placeholder="Ex: chauffeur, tri, portage" required></div>' +
+      '<div class="field"><label for="pc-commentaire">Commentaire (optionnel)</label><textarea id="pc-commentaire" placeholder="Informations complementaires"></textarea></div>' +
+      '<div class="actions"><button type="submit">Confirmer ma participation</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+      "</form>"
+    );
+    box.querySelector("#participer-form").addEventListener("submit", function (evt) {
+      evt.preventDefault();
+      Mock.participerCollecte(user.id, collecte.id, {
+        role: document.getElementById("pc-role").value,
+        commentaire: document.getElementById("pc-commentaire").value,
+      });
+      Popups.close();
+      Popups.toast("Participation confirmee, merci !");
+    });
+  }
+</script>
+</body>
+</html>

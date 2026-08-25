@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Back-office - Comptes</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="bo-content">
+  <section class="section">
+    <h1>Comptes</h1>
+    <p class="muted">Rechercher un compte, consulter et modifier son type d'utilisateur, l'activer ou le desactiver.</p>
+  </section>
+
+  <section class="section">
+    <div class="actions" style="justify-content:flex-end;">
+      <button type="button" id="btn-creer-compte">Créer un compte</button>
+    </div>
+    <div class="filters">
+      <div class="field"><label for="q">Nom ou email</label><input id="q" type="text" placeholder="Rechercher..."></div>
+      <div class="field">
+        <label for="type-filter">Type</label>
+        <select id="type-filter">
+          <option value="">Tous</option>
+          <option value="visiteur">Visiteur(se)</option>
+          <option value="adherent">Adhérent(e)</option>
+          <option value="benevole">Bénévole</option>
+          <option value="commercant">Commerçant(e)</option>
+          <option value="administrateur">Administrateur(rice)</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Nom</th><th>Email</th><th>Type</th><th>Statut</th></tr></thead>
+      <tbody id="results"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderBackofficeNav("comptes");
+
+  if (guardBackoffice("bo-content")) {
+    const qInput = document.getElementById("q");
+    const typeFilter = document.getElementById("type-filter");
+    const body = document.getElementById("results");
+
+    function render() {
+      const list = Mock.searchComptes({ q: qInput.value, type: typeFilter.value });
+      body.innerHTML = list.length
+        ? list.map(function (u) {
+            return '<tr class="clickable" data-id="' + u.id + '">' +
+              "<td>" + escapeHtml(Mock.userLabel(u)) + "</td>" +
+              "<td>" + escapeHtml(u.email) + "</td>" +
+              '<td><span class="badge">' + userTypeLabel(u.type) + "</span></td>" +
+              '<td><span class="badge ' + (u.actif ? "badge-success" : "badge-danger") + '">' + (u.actif ? "Actif" : "Desactive") + "</span></td>" +
+              "</tr>";
+          }).join("")
+        : '<tr><td colspan="4" class="muted">Aucun compte ne correspond a cette recherche.</td></tr>';
+
+      body.querySelectorAll("[data-id]").forEach(function (row) {
+        row.addEventListener("click", function () { openCompte(Number(row.dataset.id)); });
+      });
+    }
+
+    function openCompte(id) {
+      const u = Mock.getUser(id);
+      const box = Popups.open(
+        '<h3 class="popup-title">' + escapeHtml(Mock.userLabel(u)) + "</h3>" +
+        '<p class="muted">' + escapeHtml(u.email) + " &middot; " + escapeHtml(u.telephone || "") + "</p>" +
+        '<form id="compte-form">' +
+        '<div class="field"><label for="c-type">Type d\'utilisateur</label>' +
+        '<select id="c-type">' +
+        Object.keys(USER_TYPE_LABELS).map(function (t) {
+          return '<option value="' + t + '"' + (t === u.type ? " selected" : "") + ">" + USER_TYPE_LABELS[t] + "</option>";
+        }).join("") +
+        "</select></div>" +
+        '<div class="field"><label for="c-actif">Statut du compte</label>' +
+        '<select id="c-actif">' +
+        '<option value="1"' + (u.actif ? " selected" : "") + ">Actif</option>" +
+        '<option value="0"' + (!u.actif ? " selected" : "") + ">Desactive</option>" +
+        "</select></div>" +
+        '<div class="note-box">Un compte n\'est jamais supprime definitivement (il reste rattache a ses forums, annonces, etc.) : le desactiver equivaut a le "supprimer" cote back-office.</div>' +
+        '<div class="actions"><button type="submit">Enregistrer</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+        "</form>"
+      );
+      box.querySelector("#compte-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        Mock.updateCompteAdmin(id, {
+          type: document.getElementById("c-type").value,
+          actif: document.getElementById("c-actif").value === "1",
+        });
+        Popups.close();
+        Popups.toast("Compte mis a jour.");
+        render();
+      });
+    }
+
+    function openCreerCompte() {
+      const box = Popups.open(
+        '<h3 class="popup-title">Créer un compte</h3>' +
+        '<form id="creer-compte-form">' +
+        '<div class="grid grid-2">' +
+        '<div class="field"><label for="nc-prenom">Prénom</label><input id="nc-prenom" required></div>' +
+        '<div class="field"><label for="nc-nom">Nom</label><input id="nc-nom" required></div>' +
+        "</div>" +
+        '<div class="field"><label for="nc-email">Email</label><input id="nc-email" type="email" required></div>' +
+        '<div class="field"><label for="nc-type">Type d\'utilisateur</label>' +
+        '<select id="nc-type">' +
+        Object.keys(USER_TYPE_LABELS).map(function (t) {
+          return '<option value="' + t + '">' + USER_TYPE_LABELS[t] + "</option>";
+        }).join("") +
+        "</select></div>" +
+        '<div class="field"><label for="nc-telephone">Telephone</label><input id="nc-telephone"></div>' +
+        '<div class="field"><label for="nc-adresse">Adresse</label><input id="nc-adresse"></div>' +
+        '<div class="grid grid-2">' +
+        '<div class="field"><label for="nc-cp">Code postal</label><input id="nc-cp"></div>' +
+        '<div class="field"><label for="nc-ville">Ville</label><input id="nc-ville"></div>' +
+        "</div>" +
+        '<div class="actions"><button type="submit">Créer</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+        "</form>"
+      );
+
+      box.querySelector("#creer-compte-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        Mock.createCompte({
+          prenom: document.getElementById("nc-prenom").value,
+          nom: document.getElementById("nc-nom").value,
+          email: document.getElementById("nc-email").value,
+          type: document.getElementById("nc-type").value,
+          telephone: document.getElementById("nc-telephone").value,
+          adresse: document.getElementById("nc-adresse").value,
+          codePostal: document.getElementById("nc-cp").value,
+          ville: document.getElementById("nc-ville").value,
+        });
+        Popups.close();
+        Popups.toast("Compte cree.");
+        render();
+      });
+    }
+
+    document.getElementById("btn-creer-compte").addEventListener("click", openCreerCompte);
+
+    qInput.addEventListener("input", render);
+    typeFilter.addEventListener("change", render);
+    render();
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Back-office</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="bo-content">
+  <section class="section">
+    <h1>Tableau de bord</h1>
+    <p class="muted">Vue d'ensemble de l'activite de l'association sur les 7 derniers jours.</p>
+  </section>
+
+  <section class="section">
+    <div class="grid grid-2" id="priority-stat-grid" style="margin-bottom:14px;"></div>
+    <div class="stat-grid" id="stat-grid"></div>
+  </section>
+
+  <section class="section grid grid-2">
+    <div>
+      <div class="section-head"><h2>Dernieres collectes</h2><a class="btn-secondary btn-sm" href="collectes.html">Gerer</a></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Lieu</th><th>Date</th><th>Statut</th></tr></thead>
+        <tbody id="collectes-table"></tbody>
+      </table></div>
+    </div>
+    <div>
+      <div class="section-head"><h2>Dernieres distributions</h2><a class="btn-secondary btn-sm" href="distributions.html">Gerer</a></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Lieu</th><th>Date</th><th>Statut</th></tr></thead>
+        <tbody id="distributions-table"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section class="section grid grid-2">
+    <div>
+      <div class="section-head"><h2>Candidatures en attente</h2><a class="btn-secondary btn-sm" href="candidatures.html">Gerer</a></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Candidat(e)</th><th>Statut</th></tr></thead>
+        <tbody id="candidatures-table"></tbody>
+      </table></div>
+    </div>
+    <div>
+      <div class="section-head"><h2>Adhesions expirant sous 30 jours</h2><a class="btn-secondary btn-sm" href="comptes.html">Gerer</a></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Adhérent(e)</th><th>Fin</th></tr></thead>
+        <tbody id="adhesions-table"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section class="section grid grid-2">
+    <div>
+      <div class="section-head"><h2>Signalements ouverts</h2><a class="btn-secondary btn-sm" href="signalements.html">Traiter</a></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Type</th><th>Signale par</th><th>Recu</th></tr></thead>
+        <tbody id="signalements-table"></tbody>
+      </table></div>
+    </div>
+    <div>
+      <div class="section-head"><h2>Tickets ouverts</h2><a class="btn-secondary btn-sm" href="tickets.html">Traiter</a></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Sujet</th><th>De</th><th>Recu</th></tr></thead>
+        <tbody id="tickets-table"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Repartition des comptes</h2><a class="btn-secondary btn-sm" href="comptes.html">Gerer</a></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Type</th><th>Nombre</th></tr></thead>
+      <tbody id="types-table"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderBackofficeNav("dashboard");
+
+  if (guardBackoffice("bo-content")) {
+    const priorityStats = [
+      { label: "Signalements ouverts", value: Mock.pendingSignalementsCount(), tone: "stat-danger", href: "signalements.html" },
+      { label: "Tickets ouverts", value: Mock.pendingTicketsCount(), tone: "stat-warning", href: "tickets.html" },
+    ].filter(function (s) { return s.value > 0; });
+
+    const priorityGrid = document.getElementById("priority-stat-grid");
+    priorityGrid.style.display = priorityStats.length ? "" : "none";
+    priorityGrid.innerHTML = priorityStats.map(function (s) {
+      return '<div class="stat-tile clickable ' + s.tone + '" onclick="location.href=\'' + s.href + '\'">' +
+        '<div class="stat-value">' + s.value + '</div><div class="stat-label">' + s.label + "</div></div>";
+    }).join("");
+
+    const stats = [
+      { label: "Forums crees (7 jours)", value: Mock.countForumsLast7Days() },
+      { label: "Annonces creees (7 jours)", value: Mock.countAnnoncesLast7Days() },
+      { label: "Collectes (7 jours)", value: Mock.countCollectesLast7Days() },
+      { label: "Distributions (7 jours)", value: Mock.countDistributionsLast7Days() },
+      { label: "Candidatures en attente", value: Mock.pendingCandidaturesCount() },
+      { label: "Adhesions expirant sous 30j", value: Mock.adhesionsExpiringSoon(30).length },
+      { label: "Comptes actifs", value: Mock.getUsers().filter(function (u) { return u.actif; }).length },
+    ];
+    document.getElementById("stat-grid").innerHTML = stats.map(function (s) {
+      return '<div class="stat-tile"><div class="stat-value">' + s.value + '</div><div class="stat-label">' + s.label + "</div></div>";
+    }).join("");
+
+    const collectesBody = document.getElementById("collectes-table");
+    const recentCollectes = Mock.recentCollectes(5);
+    collectesBody.innerHTML = recentCollectes.length
+      ? recentCollectes.map(function (c) {
+          return '<tr class="clickable" onclick="location.href=\'collectes.html?id=' + c.id + '\'">' +
+            "<td>" + escapeHtml(c.lieu) + "</td><td>" + c.date + "</td>" +
+            '<td><span class="badge">' + c.statut + "</span></td></tr>";
+        }).join("")
+      : '<tr><td colspan="3" class="muted">Aucune collecte enregistree.</td></tr>';
+
+    const distributionsBody = document.getElementById("distributions-table");
+    const recentDistributions = Mock.recentDistributions(5);
+    distributionsBody.innerHTML = recentDistributions.length
+      ? recentDistributions.map(function (d) {
+          return '<tr class="clickable" onclick="location.href=\'distributions.html?id=' + d.id + '\'">' +
+            "<td>" + escapeHtml(d.lieu) + "</td><td>" + d.date + "</td>" +
+            '<td><span class="badge">' + d.statut + "</span></td></tr>";
+        }).join("")
+      : '<tr><td colspan="3" class="muted">Aucune distribution enregistree.</td></tr>';
+
+    const candidaturesBody = document.getElementById("candidatures-table");
+    const pending = Mock.listCandidatures().filter(function (c) { return c.statut === "recue" || c.statut === "en_etude"; });
+    candidaturesBody.innerHTML = pending.length
+      ? pending.map(function (c) {
+          const personne = Mock.getUser(c.personneId);
+          return '<tr class="clickable" onclick="location.href=\'candidatures.html?id=' + c.id + '\'">' +
+            "<td>" + escapeHtml(personne ? Mock.userLabel(personne) : "Inconnu") + "</td>" +
+            '<td><span class="badge badge-warning">' + c.statut + "</span></td></tr>";
+        }).join("")
+      : '<tr><td colspan="2" class="muted">Aucune candidature en attente.</td></tr>';
+
+    const typesBody = document.getElementById("types-table");
+    const counts = Mock.accountsByType();
+    typesBody.innerHTML = Object.keys(counts).map(function (type) {
+      return "<tr><td>" + userTypeLabel(type) + "</td><td>" + counts[type] + "</td></tr>";
+    }).join("");
+
+    const adhesionsBody = document.getElementById("adhesions-table");
+    const expiring = Mock.adhesionsExpiringSoon(30);
+    adhesionsBody.innerHTML = expiring.length
+      ? expiring.map(function (e) {
+          return "<tr><td>" + escapeHtml(e.user ? Mock.userLabel(e.user) : "Inconnu") + "</td><td>" + e.adhesion.dateFin + "</td></tr>";
+        }).join("")
+      : '<tr><td colspan="2" class="muted">Aucune adhesion proche de l\'expiration.</td></tr>';
+
+    const SIGNALEMENT_TYPE_LABELS = { forum: "Forum", forum_message: "Message de forum", annonce_message: "Message d'annonce" };
+    const signalementsBody = document.getElementById("signalements-table");
+    const openSignalements = Mock.searchSignalements({ statut: "ouvert" }).slice(0, 5);
+    signalementsBody.innerHTML = openSignalements.length
+      ? openSignalements.map(function (s) {
+          const signaleur = Mock.getUser(s.signalePar);
+          return '<tr class="clickable" onclick="location.href=\'signalements.html?id=' + s.id + '\'">' +
+            '<td><span class="badge">' + SIGNALEMENT_TYPE_LABELS[s.type] + "</span></td>" +
+            "<td>" + escapeHtml(signaleur ? Mock.userLabel(signaleur) : "Inconnu") + "</td>" +
+            "<td>" + timeAgo(s.date) + "</td></tr>";
+        }).join("")
+      : '<tr><td colspan="3" class="muted">Aucun signalement ouvert.</td></tr>';
+
+    const ticketsBody = document.getElementById("tickets-table");
+    const openTickets = Mock.searchTickets({ statut: "ouvert" }).slice(0, 5);
+    ticketsBody.innerHTML = openTickets.length
+      ? openTickets.map(function (t) {
+          const auteur = t.auteurId ? Mock.getUser(t.auteurId) : null;
+          const de = auteur ? Mock.userLabel(auteur) : (t.contactNom || "Anonyme") + " (invite)";
+          return '<tr class="clickable" onclick="location.href=\'tickets.html?id=' + t.id + '\'">' +
+            "<td>" + escapeHtml(t.sujet) + "</td>" +
+            "<td>" + escapeHtml(de) + "</td>" +
+            "<td>" + timeAgo(t.date) + "</td></tr>";
+        }).join("")
+      : '<tr><td colspan="3" class="muted">Aucun ticket ouvert.</td></tr>';
+  }
+</script>
+</body>
+</html>

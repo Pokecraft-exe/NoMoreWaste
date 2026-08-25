@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recherche de collecte</title>
+  <link rel="stylesheet" href="generic.css" />
+  <script src="popups.js"></script>
+  <script src="forums.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Recherche de collecte</h1>
+    <button class="right" onclick="creerCollectePopup()">Créer une collecte</button>
+    <br />
+    <br />
+    <div class="filters">
+      <div class="field">
+        <label for="lieu">Lieu</label>
+        <input id="lieu" type="text" placeholder="Ex: Paris" />
+      </div>
+
+      <div class="field">
+        <label for="date">Date</label>
+        <input id="date" type="date" />
+      </div>
+
+      <div class="field">
+        <label for="partenaire">Partenaire</label>
+        <select id="partenaire">
+          <option value="">Tous</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="searchBtn">Rechercher</button>
+      <button id="resetBtn" type="button">Réinitialiser</button>
+    </div>
+
+    <div id="results" class="results"></div>
+  </div>
+</body>
+</html>

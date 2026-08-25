@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Collecte</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="collecte-root"></main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderTopNav("accueil");
+  const user = Mock.getCurrentUser();
+  const collecteId = new URLSearchParams(window.location.search).get("id");
+
+  const STATUT_LABELS = { planifiee: "Planifiee", confirmee: "Confirmee", en_cours: "En cours", terminee: "Terminee", annulee: "Annulee" };
+
+  function formatDateFr(iso) {
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  }
+
+  function render() {
+    const root = document.getElementById("collecte-root");
+    const collecte = Mock.getCollecte(collecteId);
+
+    if (!collecte) {
+      root.innerHTML =
+        '<div class="empty">Cette collecte n\'existe pas ou a ete supprimee.</div>' +
+        '<p><a href="index.html">&larr; Retour a l\'accueil</a></p>';
+      return;
+    }
+
+    root.innerHTML =
+      '<p><a href="index.html">&larr; Retour a l\'accueil</a></p>' +
+      '<section class="section">' +
+      "<h1>" + escapeHtml(collecte.lieu) + "</h1>" +
+      '<div class="card-meta">' +
+      '<span class="badge">' + (STATUT_LABELS[collecte.statut] || collecte.statut) + "</span>" +
+      "<span>" + formatDateFr(collecte.date) + " a " + escapeHtml(collecte.heure || "") + "</span>" +
+      (collecte.partenaire ? "<span>avec " + escapeHtml(collecte.partenaire) + "</span>" : "") +
+      "</div>" +
+      (collecte.description ? "<p style=\"margin-top:10px;\">" + escapeHtml(collecte.description) + "</p>" : "") +
+      "</section>" +
+      '<section class="section" id="denrees-section"></section>';
+
+    renderDenreesSection(collecte);
+  }
+
+  function produitLabel(produitId) {
+    const p = Mock.getStockProduit(produitId);
+    return p ? p.nom : "Produit #" + produitId;
+  }
+
+  function produitUnite(produitId) {
+    const p = Mock.getStockProduit(produitId);
+    return p ? p.unite : "";
+  }
+
+  function renderDenreesSection(collecte) {
+    const wrap = document.getElementById("denrees-section");
+    const canManage = Mock.canManageCollecteDenrees(user, collecte);
+    const canPropose = Mock.canProposeCollecteDenrees(user, collecte);
+
+    let html = "<h2>Denrees</h2>";
+
+    if (collecte.denrees.length === 0) {
+      html += '<div class="empty">Aucune denree enregistree pour le moment sur cette collecte.</div>';
+    } else {
+      html += '<div class="table-wrap"><table><thead><tr><th>Produit</th><th>Quantite</th><th>DLC / DLUO</th><th>Origine</th><th>Statut</th>' +
+        (canManage ? "<th></th>" : "") + "</tr></thead><tbody>";
+      collecte.denrees.forEach(function (d) {
+        const auteur = Mock.getUser(d.proposePar);
+        html += "<tr>" +
+          "<td>" + escapeHtml(produitLabel(d.produitId)) + "</td>" +
+          "<td>" + d.quantite + " " + escapeHtml(produitUnite(d.produitId)) + "</td>" +
+          "<td>" + (d.nonPerissable ? '<span class="badge badge-muted">Non perissable</span>' : escapeHtml(d.dlc || "-")) + "</td>" +
+          "<td>" + (d.proposeParType === "commercant" ? "Propose par " + escapeHtml(auteur ? Mock.userLabel(auteur) : "un(e) commerçant(e)") : "Ajoute par l'equipe") + "</td>" +
+          "<td>" + (d.confirmee ? '<span class="badge badge-success">Collecte</span>' : '<span class="badge badge-warning">A confirmer</span>') + "</td>" +
+          (canManage
+            ? "<td>" +
+              (d.confirmee
+                ? ""
+                : '<button type="button" class="btn-sm" data-confirm-denree="' + d.id + '">Cocher collecte</button>') +
+              ' <button type="button" class="btn-sm btn-danger" data-del-denree="' + d.id + '">Retirer</button>' +
+              "</td>"
+            : "") +
+          "</tr>";
+      });
+      html += "</tbody></table></div>";
+    }
+
+    if (canManage) {
+      html +=
+        '<div class="actions" style="margin-top:14px;">' +
+        '<button type="button" id="confirmer-collecte-btn"' + (collecte.stockMisAJour ? " disabled" : "") + ">" +
+        (collecte.stockMisAJour ? "Collecte deja confirmee - stock mis a jour" : "Confirmer la collecte et mettre a jour le stock") +
+        "</button>" +
+        "</div>";
+    }
+
+    if (canManage) {
+      html += renderDenreeForm("mgr", "Ajouter une denree collectee");
+    } else if (canPropose) {
+      html += renderDenreeForm("cmt", "Proposer une denree pour cette collecte");
+    } else if (!user) {
+      html += '<div class="note-box" style="margin-top:16px;">Connectez-vous pour proposer ou confirmer des denrees sur cette collecte.</div>';
+    }
+
+    wrap.innerHTML = html;
+
+    wrap.querySelectorAll("[data-confirm-denree]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        Mock.toggleDenreeConfirmee(collecte.id, Number(btn.dataset.confirmDenree), true);
+        Popups.toast("Denree marquee comme collectee.");
+        render();
+      });
+    });
+    wrap.querySelectorAll("[data-del-denree]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        Popups.confirmAction("Retirer cette denree de la collecte ?", function () {
+          Mock.supprimerDenreeCollecte(collecte.id, Number(btn.dataset.delDenree));
+          render();
+        });
+      });
+    });
+
+    const confirmBtn = document.getElementById("confirmer-collecte-btn");
+    if (confirmBtn && !collecte.stockMisAJour) {
+      confirmBtn.addEventListener("click", function () {
+        Popups.confirmAction(
+          "Confirmer cette collecte ? Toutes les denrees cochees \"collecte\" seront ajoutees au stock de l'association.",
+          function () {
+            const result = Mock.confirmerCollecte(collecte.id);
+            if (!result.ok) { Popups.toast(result.error); return; }
+            Popups.toast(result.updated + " denree(s) ajoutee(s) au stock. Collecte marquee terminee.");
+            render();
+          },
+          { confirmLabel: "Confirmer", title: "Confirmer la collecte" }
+        );
+      });
+    }
+
+    wireDenreeForm("mgr", collecte, "staff");
+    wireDenreeForm("cmt", collecte, "commercant");
+  }
+
+  function renderDenreeForm(prefix, title) {
+    return (
+      '<div class="card" style="margin-top:16px;">' +
+      "<h3>" + title + "</h3>" +
+      '<form id="' + prefix + '-denree-form">' +
+      '<div class="field">' +
+      '<label for="' + prefix + '-produit-search">Produit (tapez un mot-cle, ex: miel)</label>' +
+      '<input id="' + prefix + '-produit-search" type="text" autocomplete="off" placeholder="Rechercher un produit enregistre...">' +
+      '<div id="' + prefix + '-suggestions" class="suggestions" style="display:none;"></div>' +
+      '<input type="hidden" id="' + prefix + '-produit-id">' +
+      "</div>" +
+      '<div class="grid grid-2">' +
+      '<div class="field"><label for="' + prefix + '-unite">Unite (si nouveau produit)</label><select id="' + prefix + '-unite">' +
+      Mock.UNITES_PRODUIT.map(function (u) { return '<option value="' + u + '">' + u + "</option>"; }).join("") +
+      "</select></div>" +
+      '<div class="field"><label for="' + prefix + '-quantite">Quantite</label><input id="' + prefix + '-quantite" type="number" min="1" value="1" required></div>' +
+      "</div>" +
+      '<div class="field">' +
+      '<label><input type="checkbox" id="' + prefix + '-non-perissable"> Produit non perissable (ex: miel, conserves longue duree)</label>' +
+      "</div>" +
+      '<div class="field" id="' + prefix + '-dlc-field">' +
+      '<label for="' + prefix + '-dlc">DLC / DLUO</label>' +
+      '<input id="' + prefix + '-dlc" type="date">' +
+      "</div>" +
+      '<div class="actions"><button type="submit">Enregistrer la denree</button></div>' +
+      "</form>" +
+      "</div>"
+    );
+  }
+
+  function wireDenreeForm(prefix, collecte, proposeParType) {
+    const form = document.getElementById(prefix + "-denree-form");
+    if (!form) return;
+
+    const searchInput = document.getElementById(prefix + "-produit-search");
+    const suggestionsBox = document.getElementById(prefix + "-suggestions");
+    const hiddenId = document.getElementById(prefix + "-produit-id");
+    const uniteSelect = document.getElementById(prefix + "-unite");
+    const nonPerissableBox = document.getElementById(prefix + "-non-perissable");
+    const dlcField = document.getElementById(prefix + "-dlc-field");
+    const dlcInput = document.getElementById(prefix + "-dlc");
+
+    function renderSuggestions() {
+      const query = searchInput.value;
+      const matches = Mock.searchStockProduits(query).slice(0, 6);
+      if (!query.trim() || matches.length === 0) {
+        suggestionsBox.style.display = "none";
+        suggestionsBox.innerHTML = "";
+        return;
+      }
+      suggestionsBox.innerHTML = matches.map(function (p) {
+        return '<button type="button" data-produit="' + p.id + '" data-nom="' + escapeHtml(p.nom) + '" data-unite="' + escapeHtml(p.unite) + '">' +
+          escapeHtml(p.nom) + ' <span class="muted">(' + escapeHtml(p.unite) + ")</span></button>";
+      }).join("");
+      suggestionsBox.style.display = "block";
+      suggestionsBox.querySelectorAll("[data-produit]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          hiddenId.value = btn.dataset.produit;
+          searchInput.value = btn.dataset.nom;
+          uniteSelect.value = btn.dataset.unite;
+          suggestionsBox.style.display = "none";
+        });
+      });
+    }
+
+    searchInput.addEventListener("input", function () {
+      hiddenId.value = "";
+      renderSuggestions();
+    });
+    searchInput.addEventListener("focus", renderSuggestions);
+    searchInput.addEventListener("blur", function () {
+      setTimeout(function () { suggestionsBox.style.display = "none"; }, 150);
+    });
+
+    nonPerissableBox.addEventListener("change", function () {
+      dlcField.style.display = nonPerissableBox.checked ? "none" : "";
+      dlcInput.required = !nonPerissableBox.checked;
+    });
+
+    form.addEventListener("submit", function (evt) {
+      evt.preventDefault();
+
+      const nom = searchInput.value.trim();
+      if (!nom) { Popups.toast("Indiquez un produit."); return; }
+      if (!nonPerissableBox.checked && !dlcInput.value) {
+        Popups.toast("Indiquez une DLC/DLUO, ou cochez \"non perissable\".");
+        return;
+      }
+
+      const quantite = document.getElementById(prefix + "-quantite").value;
+      const nonPerissable = nonPerissableBox.checked;
+      const dlc = dlcInput.value;
+
+      function finalize(produitId) {
+        Mock.ajouterDenreeCollecte(collecte.id, user.id, proposeParType, {
+          produitId: produitId, quantite: quantite, nonPerissable: nonPerissable, dlc: dlc,
+        });
+        Popups.toast(proposeParType === "commercant" ? "Denree proposee. Elle sera confirmee par un(e) bénévole/l'equipe le jour de la collecte." : "Denree ajoutee.");
+        render();
+      }
+
+      if (hiddenId.value) { finalize(Number(hiddenId.value)); return; }
+
+      const exact = Mock.searchStockProduits(nom).find(function (p) { return p.nom.toLowerCase() === nom.toLowerCase(); });
+      if (exact) { finalize(exact.id); return; }
+
+      const similar = Mock.findSimilarStockProduit(nom);
+      if (similar) {
+        const box2 = Popups.open(
+          '<h3 class="popup-title">Produit similaire trouve</h3>' +
+          '<p>Vous avez tape "' + escapeHtml(nom) + '". Un produit proche est deja enregistre : <strong>' + escapeHtml(similar.nom) + "</strong> (" + escapeHtml(similar.unite) + ").</p>" +
+          '<div class="actions">' +
+          '<button type="button" id="use-similar">Utiliser "' + escapeHtml(similar.nom) + '"</button>' +
+          '<button type="button" class="btn-secondary" id="create-anyway">Creer "' + escapeHtml(nom) + '" quand meme</button>' +
+          "</div>"
+        );
+        box2.querySelector("#use-similar").addEventListener("click", function () {
+          Popups.close();
+          finalize(similar.id);
+        });
+        box2.querySelector("#create-anyway").addEventListener("click", function () {
+          Popups.close();
+          finalize(Mock.createStockProduit(nom, uniteSelect.value).id);
+        });
+        return;
+      }
+
+      finalize(Mock.createStockProduit(nom, uniteSelect.value).id);
+    });
+  }
+
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Mon profil</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="profil-content">
+  <section class="section">
+    <h1>Mon profil</h1>
+    <p class="muted">Consultez et modifiez vos informations, votre adhesion, vos forums et vos annonces.</p>
+  </section>
+
+  <section class="section grid grid-2">
+    <div class="card">
+      <div class="section-head"><h2>Mes informations</h2></div>
+      <form id="profil-form">
+        <div class="grid grid-2">
+          <div class="field"><label for="pf-prenom">Prenom</label><input id="pf-prenom" required></div>
+          <div class="field"><label for="pf-nom">Nom</label><input id="pf-nom" required></div>
+        </div>
+        <div class="field"><label for="pf-email">Email</label><input id="pf-email" type="email" disabled></div>
+        <div class="field"><label for="pf-telephone">Telephone</label><input id="pf-telephone"></div>
+        <div class="field"><label for="pf-adresse">Adresse</label><input id="pf-adresse"></div>
+        <div class="grid grid-2">
+          <div class="field"><label for="pf-cp">Code postal</label><input id="pf-cp"></div>
+          <div class="field"><label for="pf-ville">Ville</label><input id="pf-ville"></div>
+        </div>
+        <div class="actions">
+          <button type="submit">Enregistrer les modifications</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card" id="adhesion-card"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Mes forums</h2>
+      <a class="btn btn-secondary btn-sm" href="forums.html">Voir tous les forums</a>
+    </div>
+    <div id="mes-forums" class="grid grid-auto"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Mes annonces</h2>
+      <a class="btn btn-secondary btn-sm" href="annonces.html">Voir toutes les annonces</a>
+    </div>
+    <div id="mes-annonces" class="grid grid-auto"></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderTopNav("profil");
+  if (requireLogin("profil-content")) {
+  const user = Mock.getCurrentUser();
+
+  document.getElementById("pf-prenom").value = user.prenom;
+  document.getElementById("pf-nom").value = user.nom;
+  document.getElementById("pf-email").value = user.email;
+  document.getElementById("pf-telephone").value = user.telephone || "";
+  document.getElementById("pf-adresse").value = user.adresse || "";
+  document.getElementById("pf-cp").value = user.codePostal || "";
+  document.getElementById("pf-ville").value = user.ville || "";
+
+  document.getElementById("profil-form").addEventListener("submit", function (evt) {
+    evt.preventDefault();
+    Mock.updateProfil(user.id, {
+      prenom: document.getElementById("pf-prenom").value,
+      nom: document.getElementById("pf-nom").value,
+      telephone: document.getElementById("pf-telephone").value,
+      adresse: document.getElementById("pf-adresse").value,
+      codePostal: document.getElementById("pf-cp").value,
+      ville: document.getElementById("pf-ville").value,
+    });
+    Popups.toast("Profil mis a jour.");
+    renderTopNav("profil");
+  });
+
+  function renderAdhesion() {
+    const wrap = document.getElementById("adhesion-card");
+    if (user.type !== "adherent") {
+      wrap.innerHTML =
+        '<div class="section-head"><h2>Adhesion</h2></div>' +
+        '<p class="muted">Ce profil de demonstration n\'est pas adherent(e) : aucune adhesion a afficher.</p>';
+      return;
+    }
+    const adhesion = Mock.getAdhesion(user.id);
+    const active = adhesion && new Date(adhesion.dateFin) >= new Date();
+    wrap.innerHTML =
+      '<div class="section-head"><h2>Mon adhesion</h2>' +
+      '<span class="badge ' + (active ? "badge-success" : "badge-danger") + '">' + (active ? "Active" : "Expiree") + "</span></div>" +
+      '<p>Valable jusqu\'au <strong>' + escapeHtml(adhesion ? adhesion.dateFin : "-") + '</strong></p>' +
+      '<div class="actions"><button type="button" id="renew-btn">Renouveler mon adhesion</button></div>';
+
+    document.getElementById("renew-btn").addEventListener("click", function () {
+      const updated = Mock.renewAdhesion(user.id);
+      Popups.toast("Adhesion renouvelee jusqu'au " + updated.dateFin + " !");
+      renderAdhesion();
+    });
+  }
+
+  function renderMesForums() {
+    const wrap = document.getElementById("mes-forums");
+    const forums = Mock.myForums(user.id);
+    if (forums.length === 0) {
+      wrap.innerHTML = '<div class="empty">Vous n\'avez cree aucun forum pour le moment.</div>';
+      return;
+    }
+    wrap.innerHTML = forums.map(function (f) {
+      return '<a class="card-link" href="forum.html?id=' + f.id + '">' +
+        '<div class="card-title">' + escapeHtml(f.titre) + "</div>" +
+        '<div class="card-meta"><span>' + f.messages.length + ' reponse(s)</span><span>' + f.vues + ' vues</span></div>' +
+        "</a>";
+    }).join("");
+  }
+
+  function renderMesAnnonces() {
+    const wrap = document.getElementById("mes-annonces");
+    const annonces = Mock.myAnnonces(user.id);
+    if (annonces.length === 0) {
+      wrap.innerHTML = '<div class="empty">Vous n\'avez depose aucune annonce pour le moment.</div>';
+      return;
+    }
+    wrap.innerHTML = annonces.map(function (a) {
+      const etat = Mock.ETATS_ANNONCE.find(function (e) { return e.value === a.etat; });
+      const cat = Mock.CATEGORIES_ANNONCE.find(function (c) { return c.value === a.categorie; });
+      return '<div class="card" data-annonce-id="' + a.id + '">' +
+        '<div class="card-title">' + escapeHtml(a.titre) + "</div>" +
+        '<div class="card-meta">' +
+        '<span class="badge">' + cat.label + "</span>" +
+        '<span class="badge badge-' + etat.tone + '">' + etat.label + "</span>" +
+        (a.prix != null ? '<span>' + a.prix + ' €</span>' : "") +
+        "</div>" +
+        '<div class="actions" style="margin-top:10px;">' +
+        '<button type="button" class="btn-sm" data-edit="' + a.id + '">Modifier</button>' +
+        '<select class="btn-sm" data-etat="' + a.id + '">' +
+        Mock.ETATS_ANNONCE.map(function (e) { return '<option value="' + e.value + '"' + (e.value === a.etat ? " selected" : "") + ">" + e.label + "</option>"; }).join("") +
+        "</select>" +
+        '<button type="button" class="btn-sm btn-danger" data-delete="' + a.id + '">Supprimer</button>' +
+        "</div>" +
+        "</div>";
+    }).join("");
+
+    wrap.querySelectorAll("[data-edit]").forEach(function (btn) {
+      btn.addEventListener("click", function () { openEditAnnonce(Number(btn.dataset.edit)); });
+    });
+    wrap.querySelectorAll("[data-etat]").forEach(function (sel) {
+      sel.addEventListener("change", function () {
+        Mock.updateAnnonce(Number(sel.dataset.etat), { etat: sel.value });
+        Popups.toast("Etat de l'annonce mis a jour.");
+        renderMesAnnonces();
+      });
+    });
+    wrap.querySelectorAll("[data-delete]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        Popups.confirmAction("Supprimer definitivement cette annonce ?", function () {
+          Mock.deleteAnnonce(Number(btn.dataset.delete));
+          Popups.toast("Annonce supprimee.");
+          renderMesAnnonces();
+        });
+      });
+    });
+  }
+
+  function openEditAnnonce(id) {
+    const a = Mock.getAnnonce(id);
+    const box = Popups.open(
+      '<h3 class="popup-title">Modifier l\'annonce</h3>' +
+      '<form id="edit-annonce-form">' +
+      '<div class="field"><label for="ea-titre">Titre</label><input id="ea-titre" value="' + escapeHtml(a.titre) + '" required></div>' +
+      '<div class="field"><label for="ea-desc">Description</label><textarea id="ea-desc" required>' + escapeHtml(a.description) + "</textarea></div>" +
+      '<div class="field"><label for="ea-prix">Prix en euros (laisser vide si don/gratuit)</label><input id="ea-prix" type="number" min="0" value="' + (a.prix != null ? a.prix : "") + '"></div>' +
+      '<div class="actions"><button type="submit">Enregistrer</button><button type="button" class="btn-secondary" data-popup-close>Annuler</button></div>' +
+      "</form>"
+    );
+    box.querySelector("#edit-annonce-form").addEventListener("submit", function (evt) {
+      evt.preventDefault();
+      const prixValue = document.getElementById("ea-prix").value;
+      Mock.updateAnnonce(id, {
+        titre: document.getElementById("ea-titre").value,
+        description: document.getElementById("ea-desc").value,
+        prix: prixValue === "" ? null : Number(prixValue),
+      });
+      Popups.close();
+      Popups.toast("Annonce mise a jour.");
+      renderMesAnnonces();
+    });
+  }
+
+  renderAdhesion();
+  renderMesForums();
+  renderMesAnnonces();
+  }
+</script>
+</body>
+</html>

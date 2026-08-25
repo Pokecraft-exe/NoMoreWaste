@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Forum</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="forum-root"></main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderTopNav("forums");
+  const user = Mock.getCurrentUser();
+  const forumId = new URLSearchParams(window.location.search).get("id");
+
+  function render() {
+    const root = document.getElementById("forum-root");
+    const forum = Mock.getForum(forumId);
+
+    if (!forum) {
+      root.innerHTML =
+        '<div class="empty">Ce forum n\'existe pas ou a ete supprime.</div>' +
+        '<p><a href="forums.html">&larr; Retour aux forums</a></p>';
+      return;
+    }
+
+    const auteur = Mock.getUser(forum.auteurId);
+    const canManage = Mock.canManageForum(forum, user);
+    const canReportForum = !!user && user.id !== forum.auteurId;
+
+    root.innerHTML =
+      '<p><a href="forums.html">&larr; Retour aux forums</a></p>' +
+      '<section class="section">' +
+      '<div class="section-head">' +
+      "<div>" +
+      "<h1>" + escapeHtml(forum.titre) + "</h1>" +
+      '<div class="card-meta"><span>par ' + escapeHtml(Mock.userLabel(auteur)) + '</span><span>' + timeAgo(forum.createdAt) + '</span><span>' + forum.vues + ' vues</span></div>' +
+      "</div>" +
+      '<div class="actions" style="margin-bottom:0;">' +
+      (canManage ? '<button type="button" id="edit-forum-btn" class="btn-secondary btn-sm">Modifier le forum</button>' : "") +
+      (canReportForum ? '<button type="button" id="report-forum-btn" class="report-link">Signaler ce forum</button>' : "") +
+      "</div>" +
+      "</div>" +
+      '<div class="card">' + escapeHtml(forum.message) + "</div>" +
+      "</section>" +
+      '<section class="section">' +
+      "<h2>" + forum.messages.length + " reponse(s)</h2>" +
+      '<div id="messages-list"></div>' +
+      (user
+        ? '<form id="reply-form" style="margin-top:16px;">' +
+          '<div class="field"><label for="reply-text">Repondre</label><textarea id="reply-text" required placeholder="Votre reponse..."></textarea></div>' +
+          '<div class="actions"><button type="submit">Envoyer</button></div>' +
+          "</form>"
+        : '<div class="note-box" style="margin-top:16px;">Connectez-vous (voir la barre de navigation) pour repondre a ce forum.</div>') +
+      "</section>";
+
+    renderMessages(forum);
+
+    if (canManage) {
+      document.getElementById("edit-forum-btn").addEventListener("click", function () { openEditForum(forum); });
+    }
+
+    if (canReportForum) {
+      document.getElementById("report-forum-btn").addEventListener("click", function () {
+        Popups.openReportForm("Signaler ce forum", function (motif) {
+          Mock.createSignalement("forum", { forumId: forum.id }, user.id, motif);
+        });
+      });
+    }
+
+    if (user) {
+      document.getElementById("reply-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        const text = document.getElementById("reply-text").value.trim();
+        if (!text) return;
+        Mock.addForumMessage(forum.id, user.id, text);
+        render();
+      });
+    }
+  }
+
+  function renderMessages(forum) {
+    const wrap = document.getElementById("messages-list");
+    if (forum.messages.length === 0) {
+      wrap.innerHTML = '<div class="empty">Aucune reponse pour le moment. Soyez le premier a repondre !</div>';
+      return;
+    }
+    wrap.innerHTML = forum.messages.map(function (m) {
+      const auteur = Mock.getUser(m.auteurId);
+      const initiales = (auteur.prenom[0] + auteur.nom[0]).toUpperCase();
+      const canDeleteThis = Mock.canDeleteForumMessage(m, user);
+      const canReportThis = !!user && user.id !== m.auteurId;
+      return '<div class="thread-message">' +
+        '<span class="avatar">' + initiales + "</span>" +
+        '<div class="bubble">' +
+        '<div class="msg-meta">' +
+        '<strong>' + escapeHtml(Mock.userLabel(auteur)) + "</strong>" +
+        '<span>' + timeAgo(m.date) + "</span>" +
+        '<span style="margin-left:auto;display:flex;gap:6px;align-items:center;">' +
+        (canReportThis ? '<button type="button" class="report-link" data-report="' + m.id + '">Signaler</button>' : "") +
+        (canDeleteThis ? '<button type="button" class="btn-sm btn-danger" data-del="' + m.id + '">Supprimer</button>' : "") +
+        "</span>" +
+        "</div>" +
+        '<div>' + escapeHtml(m.message) + "</div>" +
+        "</div>" +
+        "</div>";
+    }).join("");
+
+    wrap.querySelectorAll("[data-del]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        Popups.confirmAction("Supprimer ce message ?", function () {
+          Mock.deleteForumMessage(forum.id, Number(btn.dataset.del));
+          render();
+        });
+      });
+    });
+
+    wrap.querySelectorAll("[data-report]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const messageId = Number(btn.dataset.report);
+        Popups.openReportForm("Signaler ce message", function (motif) {
+          Mock.createSignalement("forum_message", { forumId: forum.id, messageId: messageId }, user.id, motif);
+        });
+      });
+    });
+  }
+
+  function openEditForum(forum) {
+    const box = Popups.open(
+      '<h3 class="popup-title">Modifier le forum</h3>' +
+      '<form id="edit-forum-form">' +
+      '<div class="field"><label for="ef-titre">Titre</label><input id="ef-titre" value="' + escapeHtml(forum.titre) + '" required></div>' +
+      '<div class="field"><label for="ef-message">Message d\'ouverture</label><textarea id="ef-message" required>' + escapeHtml(forum.message) + "</textarea></div>" +
+      '<div class="actions">' +
+      '<button type="submit">Enregistrer</button>' +
+      '<button type="button" class="btn-secondary" data-popup-close>Annuler</button>' +
+      '<button type="button" class="btn-danger" id="delete-forum-btn" style="margin-left:auto;">Supprimer le forum</button>' +
+      "</div>" +
+      "</form>"
+    );
+    box.querySelector("#edit-forum-form").addEventListener("submit", function (evt) {
+      evt.preventDefault();
+      Mock.updateForum(forum.id, {
+        titre: document.getElementById("ef-titre").value,
+        message: document.getElementById("ef-message").value,
+      });
+      Popups.close();
+      render();
+    });
+    box.querySelector("#delete-forum-btn").addEventListener("click", function () {
+      Popups.confirmAction("Supprimer definitivement ce forum et toutes ses reponses ?", function () {
+        Mock.deleteForum(forum.id);
+        window.location.href = "forums.html";
+      });
+    });
+  }
+
+  if (forumId) Mock.recordForumView(forumId);
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO MORE WASTE - Back-office - Signalements</title>
+<link rel="stylesheet" href="../generic.css?v=14">
+</head>
+<body>
+<div id="topnav-root"></div>
+
+<main class="wrap" id="bo-content">
+  <section class="section">
+    <h1>Signalements</h1>
+    <p class="muted">Forums, messages de forum et messages d'annonce signales par les membres. Tant qu'un signalement est
+    ouvert, l'entierete de la discussion concernee reste visible pour juger du contexte (seul cas ou la messagerie privee
+    d'une annonce est consultable ici). Une fois traite, seul le message mis en cause reste affiche, via une archive prise
+    au moment du traitement - il reste consultable meme si le message (ou le forum/l'annonce qui le contenait) est ensuite
+    supprime. Un(e) administrateur(rice) laisse un commentaire visible par la personne qui a signale (dans ses
+    notifications) puis termine le signalement - sans qu'aucune action sur le contenu ne soit exigee. Si une suppression
+    est necessaire, elle se fait depuis les pages Forums/Annonces habituelles.</p>
+  </section>
+
+  <section class="section">
+    <div class="filters">
+      <div class="field">
+        <label for="statut-filter">Statut</label>
+        <select id="statut-filter">
+          <option value="">Tous</option>
+          <option value="ouvert">Ouvert</option>
+          <option value="traite">Traite</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Type</th><th>Contenu signale</th><th>Signale par</th><th>Recu</th><th>Statut</th></tr></thead>
+      <tbody id="results"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script src="../mock-data.js?v=14"></script>
+<script src="../mock-api.js?v=14"></script>
+<script src="../popups.js?v=14"></script>
+<script src="../client.js?v=14"></script>
+<script>
+  renderBackofficeNav("signalements");
+
+  const SIGNALEMENT_TYPE_LABELS = {
+    forum: "Forum",
+    forum_message: "Message de forum",
+    annonce_message: "Message d'annonce",
+  };
+
+  if (guardBackoffice("bo-content")) {
+    const admin = Mock.getCurrentUser();
+    const statutFilter = document.getElementById("statut-filter");
+    const body = document.getElementById("results");
+
+    function cibleLabel(s) {
+      if (s.type === "annonce_message") {
+        const a = Mock.getAnnonce(s.annonceId);
+        return a ? escapeHtml(a.titre) : "Annonce supprimee";
+      }
+      const forum = Mock.getForum(s.forumId);
+      return forum ? escapeHtml(forum.titre) : "Forum supprime";
+    }
+
+    function render() {
+      const list = Mock.searchSignalements({ statut: statutFilter.value });
+      body.innerHTML = list.length
+        ? list.map(function (s) {
+            const signaleur = Mock.getUser(s.signalePar);
+            return '<tr class="clickable" data-id="' + s.id + '">' +
+              '<td><span class="badge">' + SIGNALEMENT_TYPE_LABELS[s.type] + "</span></td>" +
+              "<td>" + cibleLabel(s) + "</td>" +
+              "<td>" + escapeHtml(signaleur ? Mock.userLabel(signaleur) : "Inconnu") + "</td>" +
+              "<td>" + timeAgo(s.date) + "</td>" +
+              '<td><span class="badge ' + (s.statut === "traite" ? "badge-success" : "badge-warning") + '">' + s.statut + "</span></td>" +
+              "</tr>";
+          }).join("")
+        : '<tr><td colspan="5" class="muted">Aucun signalement ne correspond a cette recherche.</td></tr>';
+
+      body.querySelectorAll("[data-id]").forEach(function (row) {
+        row.addEventListener("click", function () { openSignalement(Number(row.dataset.id)); });
+      });
+    }
+
+    function renderDiscussion(s) {
+      const ctx = Mock.getSignalementDiscussion(s);
+      const messages = [];
+
+      if (s.type === "annonce_message" && ctx.annonce) {
+        messages.push({
+          auteurId: ctx.annonce.auteurId, date: ctx.annonce.createdAt,
+          message: "[Annonce] " + ctx.annonce.titre + " - " + ctx.annonce.description,
+          flagged: false,
+        });
+        ctx.messages.forEach(function (m) {
+          messages.push({ auteurId: m.auteurId, date: m.date, message: m.message, flagged: m.id === s.messageId });
+        });
+      } else if (ctx.forum) {
+        messages.push({ auteurId: ctx.forum.auteurId, date: ctx.forum.createdAt, message: ctx.forum.message, flagged: s.type === "forum" });
+        ctx.messages.forEach(function (m) {
+          messages.push({ auteurId: m.auteurId, date: m.date, message: m.message, flagged: s.type === "forum_message" && m.id === s.messageId });
+        });
+      }
+
+      if (messages.length === 0) return '<div class="empty">Contenu introuvable (peut-etre deja supprime).</div>';
+
+      return '<div class="table-wrap" style="max-height:320px;overflow-y:auto;">' +
+        messages.map(function (m) {
+          const auteur = Mock.getUser(m.auteurId);
+          return '<div class="thread-message"' + (m.flagged ? ' style="outline:2px solid var(--danger);border-radius:8px;"' : "") + ">" +
+            '<span class="avatar">' + (auteur ? (auteur.prenom[0] + auteur.nom[0]).toUpperCase() : "?") + "</span>" +
+            '<div class="bubble">' +
+            '<div class="msg-meta"><strong>' + escapeHtml(auteur ? Mock.userLabel(auteur) : "Inconnu") + "</strong><span>" + timeAgo(m.date) + "</span>" +
+            (m.flagged ? '<span class="badge badge-danger" style="margin-left:auto;">Signale</span>' : "") +
+            "</div>" +
+            "<div>" + escapeHtml(m.message) + "</div>" +
+            "</div>" +
+            "</div>";
+        }).join("") +
+        "</div>";
+    }
+
+    function renderArchivedMessage(s) {
+      const archived = Mock.getArchivedMessage(s.id);
+      if (!archived) return '<div class="empty">Message non disponible.</div>';
+      const auteur = Mock.getUser(archived.auteurId);
+      return '<div class="thread-message" style="outline:2px solid var(--danger);border-radius:8px;">' +
+        '<span class="avatar">' + (auteur ? (auteur.prenom[0] + auteur.nom[0]).toUpperCase() : "?") + "</span>" +
+        '<div class="bubble">' +
+        '<div class="msg-meta"><strong>' + escapeHtml(auteur ? Mock.userLabel(auteur) : "Inconnu") + "</strong><span>" + timeAgo(archived.date) + "</span>" +
+        '<span class="badge badge-danger" style="margin-left:auto;">Signale (archive)</span>' +
+        "</div>" +
+        "<div>" + escapeHtml(archived.message) + "</div>" +
+        "</div>" +
+        "</div>";
+    }
+
+    function openSignalement(id) {
+      const s = Mock.getSignalement(id);
+      if (!s) return;
+      const signaleur = Mock.getUser(s.signalePar);
+
+      const box = Popups.open(
+        '<h3 class="popup-title">Signalement : ' + SIGNALEMENT_TYPE_LABELS[s.type] + " - " + cibleLabel(s) + "</h3>" +
+        '<p class="muted">Signale par ' + escapeHtml(signaleur ? Mock.userLabel(signaleur) : "Inconnu") + " &middot; " + timeAgo(s.date) + "</p>" +
+        '<div class="note-box"><strong>Motif :</strong> ' + escapeHtml(s.motif) + "</div>" +
+        '<h4 style="margin-top:14px;">' + (s.statut === "traite" ? "Message signale (archive)" : "Discussion complete") + "</h4>" +
+        (s.statut === "traite" ? renderArchivedMessage(s) : renderDiscussion(s)) +
+        (s.statut === "traite"
+          ? '<div class="note-box" style="margin-top:12px;">Deja traite ' + timeAgo(s.traiteAt) + " - commentaire envoye : " + escapeHtml(s.commentaire) + "</div>"
+          : "") +
+        '<form id="signalement-form" style="margin-top:14px;">' +
+        '<div class="field"><label for="sg-commentaire">' + (s.statut === "traite" ? "Modifier le commentaire" : "Commentaire pour la personne qui a signale") + '</label><textarea id="sg-commentaire" required>' + escapeHtml(s.commentaire || "") + "</textarea></div>" +
+        '<div class="actions">' +
+        '<button type="submit">' + (s.statut === "traite" ? "Mettre a jour" : "Terminer le signalement") + "</button>" +
+        '<button type="button" class="btn-secondary" data-popup-close>Fermer</button>' +
+        "</div>" +
+        "</form>",
+        { wide: true }
+      );
+
+      box.querySelector("#signalement-form").addEventListener("submit", function (evt) {
+        evt.preventDefault();
+        Mock.resoudreSignalement(s.id, admin.id, document.getElementById("sg-commentaire").value);
+        Popups.close();
+        Popups.toast("Signalement termine.");
+        render();
+      });
+    }
+
+    statutFilter.addEventListener("change", render);
+    render();
+
+    const preselectId = new URLSearchParams(window.location.search).get("id");
+    if (preselectId) openSignalement(Number(preselectId));
+  }
+</script>
+</body>
+</html>
