@@ -1,0 +1,458 @@
+Se Connecter
+S'inscrire
+Email
+Mot de Passe
+Confirmer le mot de passe
+Langues
+Cette page dans d'autres langues
+Séléction des rôles
+Vos rôles
+Forums
+Éléments par page
+Résolu
+Sujet
+Aperçu
+Date
+Oui
+Non
+Annonces
+Éléments par page
+Catégorie
+Titre
+Prix
+Description
+Date
+Image
+Statut
+Précédent
+Suivant
+Répondre
+Aimer
+Ne pas aimer
+Vendeur
+Acheteur
+Messages
+Retour
+Message
+Auteur
+Date
+Accueil
+Cuisine
+Mon profil
+Mon planning
+Back-office
+Tableau de bord
+Comptes
+Collectes
+Distributions
+Planning
+Candidatures
+Recettes
+Signalements
+Tickets
+Retour au site
+Se deconnecter
+Se connecter
+Invité(e) (non connecté(e))
+Aide
+Changer de langue
+Notifications
+Connexion
+Inscription
+Connexion & Inscription
+Mot de passe
+Confirmation
+Nom
+Prenom
+Telephone
+Adresse
+Code postal
+Ville
+Type de compte
+Adherent(e)
+Visiteur(se)
+Commercant(e)
+Bénévole
+Benevole
+Enregistrer
+Envoyer
+Publier
+Rechercher
+Filtrer
+Supprimer
+Modifier
+Créer
+Gérer
+Gerer
+Ouvrir
+Affecter
+Accepter
+Annuler la collecte
+Annuler la distribution
+Allouer
+Participer
+Reserver
+Retirer
+Voir les forums
+Voir les recettes
+Télécharger en Excel
+Télécharger (.ics)
++ Google Agenda
+Retour aux forums
+Retour aux recettes
+Retour a l'accueil
+Heure
+Lieu
+Role
+Type
+Categorie
+Etat
+Publiée
+Toutes
+Tous
+Gratuit
+Vente
+Don
+Location
+Reparation
+Gardiennage
+Covoiturage
+Produit
+Quantite
+Quantite allouee
+Restant
+Unite
+Denrees
+Origine
+DLC / DLUO
+Ingredients
+Ingrédients
+Ustensiles
+Preparation
+Recette
+Vidéo (URL, optionnel)
+Fiches cuisine
+Contenu
+Outils (séparés par des virgules)
+Ingrédients (séparés par des virgules)
+Titre ou ingrédient
+Rechercher (titre ou ingredient)
+Titre ou description
+Role souhaite (optionnel)
+Motivation
+Disponibilites
+Disponibilites :
+Votre nom
+Votre email
+Réponse
+Réponses
+Auteur(e)
+Candidat(e)
+Candidature de
+Candidatures bénévoles
+Commentaire interne
+Commentaire de résolution
+Reçu
+Signalé par
+Motif
+Motif :
+Signalement #
+Message signalé
+Traiter
+Traiter le signalement
+Terminer le signalement
+Discussion complète
+Discussion indisponible.
+Message mis en cause (archivé)
+Message non disponible.
+Réponse envoyée
+Envoyer et clore le ticket
+Tickets d'assistance
+Tickets ouverts
+De
+Modération des forums
+Modération des annonces
+Supprimer le sujet
+Supprimer le forum
+Créer un compte
+Créer une candidature
+Créer une collecte
+Créer une distribution
+Créer une fiche
+Créer une fiche cuisine
+Creer un forum
+Deposer une annonce
+Petites annonces entre particuliers
+Proposer un prix (optionnel)
+Proposition :
+Signaler
+Signaler ce forum
+Signaler ce message : motif
+Envoyer le signalement
+Connectez-vous pour contacter le vendeur.
+Envoyez un premier message pour demarrer la conversation.
+Aucun message pour le moment. Contactez le vendeur !
+Cette annonce vous appartient.
+Forums de conseil
+Partagez vos astuces anti-gaspi.
+Partagez vos astuces anti-gaspi et decouvrez celles de la communaute.
+Forum tendance
+Aucun forum pour le moment
+Bienvenue sur NO MORE WASTE
+Le forum le plus suivi du moment, la prochaine collecte et la prochaine distribution a ne pas manquer.
+Prochaine collecte
+Prochaine distribution
+Recettes anti-gaspi
+Trouvez une recette selon vos ingredients ou vos ustensiles disponibles.
+Aucune recette ne correspond a cette recherche.
+Aucun forum ne correspond a cette recherche.
+Aucun sujet ne correspond a cette recherche.
+Aucune annonce ne correspond a cette recherche.
+Aucune annonce ne correspond a ces criteres.
+Aucune collecte ne correspond a cette recherche.
+Aucune distribution ne correspond a cette recherche.
+Aucune candidature ne correspond a cette recherche.
+Aucun compte ne correspond a cette recherche.
+Aucune fiche ne correspond a cette recherche.
+Aucun signalement ne correspond a cette recherche.
+Aucun ticket ne correspond a cette recherche.
+Aucune notification pour le moment.
+Aucune mission planifiee pour le moment.
+Aucune reponse pour le moment. Soyez le premier a repondre !
+Aucune reponse.
+Aucun(e) bénévole affecté(e).
+Aucune collecte enregistree.
+Aucune distribution enregistree.
+Aucune collecte ou distribution à venir.
+Aucune denree enregistree pour le moment.
+Aucune denree allouee.
+Indiquez votre disponibilite : un(e) administrateur(rice) choisira ensuite qui sera sur place.
+Je suis disponible pour cette collecte
+Je suis disponible pour cette distribution
+Proposer une denree pour cette collecte
+Nouveau produit non catalogue ?
+Ajouter une denree collectee
+Ajouter au catalogue
+Enregistrer la denree
+Confirmer la collecte et mettre a jour le stock
+Collecte deja confirmee
+A confirmer
+Non perissable
+Produit non perissable (ex: miel, conserves longue duree)
+Cocher collecte
+Propose par un(e) commercant(e)
+Connectez-vous pour proposer ou confirmer des denrees sur cette collecte.
+Devenir bénévole
+Denrees distribuees
+Quota par adherent(e)
+Quota par adherent(e) :
+Localisation de la distribution
+Les denrees de cette distribution n'ont pas encore ete choisies par un(e) administrateur(rice).
+Les distributions sont animees par des bénévoles et reservent leurs denrees aux adherent(e)s. Vous pouvez devenir bénévole pour y participer.
+Connectez-vous en tant que benevole pour participer sur place, ou en tant qu'adherent(e) pour reserver des denrees.
+Reservation impossible.
+Les missions auxquelles vous etes affecte(e) en tant que benevole, ainsi qu'un lien direct pour les ajouter a votre Google Agenda.
+Adhesion
+Statut :
+Fin :
+Renouveler l'adhesion
+Profil mis a jour.
+Ce profil n'est pas adherent(e) : aucune adhesion a afficher.
+Mentions légales
+Éditeur du site
+Hébergement
+Propriété intellectuelle
+Responsabilité
+Contact : voir la page
+Vos droits
+Cookies
+Données collectées
+Finalité du traitement
+Conservation
+Politique de confidentialité
+Choisissez une langue pour continuer votre navigation.
+Actuelle
+Aucune langue disponible.
+Contacter le staff
+Message envoye au staff, merci !
+Une question, un probleme sur le site ? Ecrivez-nous, un(e) administrateur(rice) vous repondra.
+Message d'ouverture
+Modifier le forum
+Supprimer definitivement ce forum et toutes ses reponses ?
+Supprimer ce message ?
+Supprimer ce sujet et tous ses messages ?
+Supprimer cette annonce ?
+Supprimer cette fiche cuisine ?
+Supprimer definitivement cette candidature ?
+Retirer cette denree ?
+Confirmer cette collecte ? Toutes les denrees cochees seront ajoutees au stock.
+Annuler cette collecte ?
+Annuler cette distribution ?
+Signalement envoye, merci.
+Envoi impossible.
+Creation impossible.
+Erreur.
+Erreur lors de l\
+Role :
+Par
+par
+vues
+reponse(s)
+a
+avec
+unite(s).
+aide
+Le contenu des annonces ne peut etre modifie que par leur auteur(e) ; le back-office peut uniquement les supprimer.
+Vue d'ensemble de l'activite de l'association.
+Comptes actifs
+Comptes au total
+Candidatures en attente
+Signalements ouverts
+Dernieres collectes
+Dernieres distributions
+Repartition des comptes
+Nombre
+Bénévoles affectés
+Collecte :
+Distribution :
+Compte ID du/de la bénévole
+L'identifiant du compte est visible sur la page Comptes.
+Commerçant(e) partenaire - email (si applicable)
+Partenaire (association, si applicable)
+Lieu ou partenaire
+Valider la candidature fait automatiquement passer le compte en type "bénévole".
+Commentaire (visible par la personne ayant signalé, dans ses notifications)
+Type d'utilisateur
+Nom ou email
+Compte actif
+Traité
+Ouvert
+Repondre
+Email du/de la candidat(e)
+Motivation :
+Demandes de participation en attente
+Collectes et distributions à venir, bénévoles affectés et demandes de participation en attente d'acceptation.
+Directeur(rice) de la publication : le/la président(e) de l'association.
+Le site est hébergé sur une infrastructure dédiée à l'association.
+Recue
+En etude
+Validee
+Refusee
+Archivee
+Partenaire
+Vues
+Créé
+Le
+En savoir plus
+Voir le detail
+Voir la video
+allouees
+reparation, gardiennage, location, vente, don.
+en euros (laisser vide si don/gratuit)
+boites
+kg
+litres
+paquets
+unites
+Connectez-vous pour repondre a ce forum.
+Messagerie & negociation
+les denrees →
+Lors de la création d'un compte, NO MORE WASTE collecte votre nom, prénom, adresse email, téléphone et adresse postale, ainsi que les informations liées à votre participation (candidatures bénévoles, collectes, distributions, annonces, messages du forum).
+Ces données servent uniquement à la gestion de votre compte, à l'organisation des collectes et distributions de denrées, et à la mise en relation entre membres de l'association. Elles ne sont jamais vendues à des tiers.
+Vos données sont conservées pendant la durée de votre adhésion, puis archivées ou supprimées conformément à la réglementation en vigueur.
+Le site utilise uniquement un cookie de session technique, nécessaire à votre connexion et à la mémorisation de la langue choisie. Aucun cookie publicitaire ou de suivi n'est utilisé.
+L'ensemble des contenus présents sur ce site (textes, logos, mise en page) est la propriété de l'association NO MORE WASTE, sauf mention contraire. Toute reproduction sans autorisation est interdite.
+Le site NO MORE WASTE est édité par l'association NO MORE WASTE (loi 1901), dont l'objet est la lutte contre le gaspillage alimentaire par la collecte et la redistribution de denrées auprès des adhérent(e)s et bénéficiaires de l'association.
+Les denrées proposées via la plateforme (collectes, distributions, annonces entre membres) sont mises en relation par l'association mais restent sous la responsabilité de leurs contributeur(rice)s respectif(ve)s.
+Conformément au Règlement Général sur la Protection des Données (RGPD), vous disposez d'un droit d'accès, de rectification et de suppression de vos données. Pour exercer ce droit, contactez le staff via la page
+les denrees
+Actif
+Desactive
+Adhérent(e)
+Commerçant(e)
+Administrateur(rice)
+Benevoles affectes
+Intitule
+Sujet de forum
+Message de forum
+Message d'annonce
+Ajout impossible.
+Ajoute par l'equipe
+Collecte
+Distribution
+Annonce
+Forum
+Adhesion renouvelee jusqu\'au 
+Mes forums
+Mes annonces
+Vous n'avez cree aucun forum pour le moment.
+Vous n'avez depose aucune annonce pour le moment.
+Ingredient
+Outil de cuisine
+Nom du plat
+Reinitialiser
+Email de l'auteur(rice)
+Adhesions expirant sous 30 jours
+Fin
+Commerçants
+Raison sociale
+Identifiant légal (SIRET)
+Pays
+Désactiver
+Réactiver
+Historique des adhésions
+Début
+Envoyer un rappel de renouvellement
+Message du rappel
+Rappel envoyé.
+Aucun commerçant ne correspond à cette recherche.
+Aucune adhésion enregistrée.
+Stocks
+Emplacement
+Type de stockage
+Capacité max
+Créer un emplacement
+Produits
+Code-barre
+Référencer un produit
+Mouvements de stock
+Type de mouvement
+Enregistrer un mouvement
+Aucun produit ne correspond à cette recherche.
+Aucun mouvement enregistré.
+Aucun emplacement enregistré.
+Services
+Catégorie de service
+Tarif
+Créer un service
+Planning du service
+Capacité
+S'inscrire à ce créneau
+Se désinscrire
+Mes inscriptions
+Aucun service disponible.
+Aucune date de planning.
+Places restantes
+Télécharger le récapitulatif PDF
+Générer le récapitulatif PDF
+Bénévoles
+Compétences
+Ajouter une compétence
+Niveau
+Affectations
+Adhérents
+Date d'inscription
+Site
+Poids (kg)
+Commentaire
+Annuler
+Annuler ce créneau ?
+Connectez-vous en tant qu'adherent(e) pour vous inscrire a un service.
+Page introuvable
+Acces refuse
+Erreur interne du serveur
+Une erreur est survenue
+La page demandee n'existe pas ou a ete deplacee.
+Vous n'avez pas les droits necessaires pour acceder a cette page.
+Le serveur a rencontre un probleme. Reessayez dans quelques instants.
+Responsable

@@ -1,0 +1,48 @@
+services:
+  db:
+    build:
+      context: db
+    ports:
+      - "5432:5432"
+    volumes:
+      - nmw_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: back
+    environment:
+      DATABASE_AUTH_URL: postgres://postgres:nomorewaste@db:5432/nomorewaste?sslmode=disable
+      DATABASE_PUBLIC_URL: postgres://postgres:nomorewaste@db:5432/nomorewaste?sslmode=disable
+      DATABASE_ADMIN_URL: postgres://postgres:nomorewaste@db:5432/nomorewaste?sslmode=disable
+      PORT: "8080"
+    ports:
+      - "8081:8080"
+    # Les recapitulatifs PDF sont ecrits dans DATA_DIR et references dans
+    # document_genere : sans volume, la base garderait des lignes pointant
+    # vers des fichiers disparus a chaque recreation du conteneur.
+    volumes:
+      - nmw_data:/app/DATA
+    depends_on:
+      db:
+        condition: service_healthy
+
+  front:
+    build:
+      context: .
+      dockerfile: docker/front.Dockerfile
+    environment:
+      API_BASE_URL: https://api:8080
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+
+volumes:
+  nmw_pgdata:
+  nmw_data:

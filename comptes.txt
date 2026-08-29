@@ -1,0 +1,34 @@
+NO MORE WASTE - comptes de demonstration (sql.sql + seed.sql)
+====================================================================
+
+Ces identifiants correspondent aux comptes crees par sql.sql (le compte
+administrateur, cree par le bootstrap du schema) et seed.sql (tous
+les autres). Les mots de passe ci-dessous sont EN CLAIR uniquement dans
+ce fichier : en base (table compte, colonne mot_de_passe), ils sont
+stockes hashes via pgcrypto (crypt(..., gen_salt('bf')), bcrypt).
+Ce fichier ne doit pas etre distribue en dehors d'un environnement de
+demonstration.
+
+Administrateur(rice) (1 seul compte, cree par sql.sql lui-meme)
+-------------------------------------
+admin@nomorewaste.local                ChangeMe123!
+
+Adherent(e)s
+-------------------------------------
+julie.martin@example.com               Julie2026!
+sophie.bernard@example.com             Sophie2026!
+
+Benevoles
+-------------------------------------
+karim.haddad@example.com               Karim2026!
+lea.dubois@example.com                 Lea2026!
+nadia.cherif@example.com               Nadia2026!
+
+Commercant(e)s
+-------------------------------------
+contact@boulangerieducoin.example.com  Boulangerie2026!
+contact@epicerieverte.example.com      EpicerieVerte2026!
+
+Visiteur(se)s
+-------------------------------------
+camille.petit@example.com              Camille2026!   (candidature benevole en attente)

@@ -1,0 +1,458 @@
+Sign Up
+Sign In
+Email
+Password
+Confirm Password
+Languages
+This page in other languages
+Role Selection
+Your roles:
+Forums
+Items per page
+Resolved
+Topic
+Preview
+Date
+Yes
+No
+Announcements
+Items per page
+Category
+Title
+Price
+Description
+Date
+Image
+State
+Previous
+Next
+Reply
+Like
+Dislike
+Seller
+Buyer
+Messages
+Back
+Message
+Author
+Date
+Home
+Recipes
+My profile
+My schedule
+Back office
+Dashboard
+Accounts
+Collections
+Distributions
+Schedule
+Applications
+Recipes
+Reports
+Tickets
+Back to site
+Log out
+Log in
+Guest (not logged in)
+Help
+Change language
+Notifications
+Login
+Registration
+Login & Registration
+Password
+Confirmation
+Last name
+First name
+Phone
+Address
+Postal code
+City
+Account type
+Member
+Visitor
+Merchant
+Volunteer
+Volunteer
+Save
+Send
+Publish
+Search
+Filter
+Delete
+Edit
+Create
+Manage
+Manage
+Open
+Assign
+Accept
+Cancel collection
+Cancel distribution
+Allocate
+Participate
+Reserve
+Remove
+View forums
+View recipes
+Download Excel
+Download (.ics)
++ Google Calendar
+Back to forums
+Back to recipes
+Back to home
+Time
+Location
+Role
+Type
+Category
+State
+Published
+All
+All
+Free
+Sale
+Donation
+Rental
+Repair
+Pet sitting
+Carpooling
+Product
+Quantity
+Allocated quantity
+Remaining
+Unit
+Food items
+Source
+Use-by / best-before date
+Ingredients
+Ingredients
+Utensils
+Preparation
+Recipe
+Video (URL, optional)
+Recipe sheets
+Content
+Tools (comma-separated)
+Ingredients (comma-separated)
+Title or ingredient
+Search (title or ingredient)
+Title or description
+Preferred role (optional)
+Motivation
+Availability
+Availability:
+Your name
+Your email
+Reply
+Replies
+Author
+Applicant
+Application from
+Volunteer applications
+Internal comment
+Resolution comment
+Received
+Reported by
+Reason
+Reason:
+Report #
+Reported message
+Process
+Process report
+Close report
+Full discussion
+Discussion unavailable.
+Reported message (archived)
+Message unavailable.
+Reply sent
+Send and close ticket
+Support tickets
+Open tickets
+From
+Forum moderation
+Announcement moderation
+Delete topic
+Delete forum
+Create an account
+Create an application
+Create a collection
+Create a distribution
+Create a sheet
+Create a recipe sheet
+Create a forum
+Post an announcement
+Classified ads between individuals
+Offer a price (optional)
+Offer:
+Report
+Report this forum
+Report this message: reason
+Send report
+Log in to contact the seller.
+Send a first message to start the conversation.
+No messages yet. Contact the seller!
+This announcement belongs to you.
+Advice forums
+Share your food-waste tips.
+Share your food-waste tips and discover those from the community.
+Trending forum
+No forums yet
+Welcome to NO MORE WASTE
+The most-followed forum, the next collection, and the next distribution you should not miss.
+Next collection
+Next distribution
+Food-waste recipes
+Find a recipe based on your available ingredients or utensils.
+No recipe matches this search.
+No forum matches this search.
+No topic matches this search.
+No announcement matches this search.
+No announcement matches these criteria.
+No collection matches this search.
+No distribution matches this search.
+No application matches this search.
+No account matches this search.
+No recipe sheet matches this search.
+No report matches this search.
+No ticket matches this search.
+No notifications at the moment.
+No scheduled missions at the moment.
+No replies yet. Be the first to reply!
+No replies.
+No volunteers assigned.
+No collections recorded.
+No distributions recorded.
+No upcoming collection or distribution.
+No food items recorded yet.
+No food items allocated.
+Indicate your availability; an administrator will then choose who will be on site.
+I am available for this collection
+I am available for this distribution
+Offer a food item for this collection
+New product not in the catalog?
+Add a collected food item
+Add to catalog
+Save food item
+Confirm collection and update stock
+Collection already confirmed
+To be confirmed
+Non-perishable
+Non-perishable product (e.g. honey, long-life canned goods)
+Check collection
+Proposed by a merchant
+Log in to offer or confirm food items for this collection.
+Become a volunteer
+Distributed food items
+Quota per member
+Quota per member:
+Distribution location
+The food items for this distribution have not yet been selected by an administrator.
+Distributions are run by volunteers and reserve their food items for members. You can become a volunteer to take part.
+Log in as a volunteer to participate on site, or as a member to reserve food items.
+Unable to make reservation.
+Your assigned volunteer missions, with a direct link to add them to your Google Calendar.
+Membership
+Status:
+End date:
+Renew membership
+Profile updated.
+This profile is not a member: no membership to display.
+Legal notice
+Site publisher
+Hosting
+Intellectual property
+Liability
+Contact: see the Help page
+Your rights
+Cookies
+Collected data
+Purpose of processing
+Retention
+Privacy policy
+Choose a language to continue browsing.
+Current
+No languages available.
+Contact staff
+Message sent to staff, thank you!
+Have a question or a problem with the site? Write to us and an administrator will reply.
+Opening message
+Edit forum
+Delete this forum and all its replies permanently?
+Delete this message?
+Delete this topic and all its messages?
+Delete this announcement?
+Delete this recipe sheet?
+Delete this application permanently?
+Remove this food item?
+Confirm this collection? All checked food items will be added to stock.
+Cancel this collection?
+Cancel this distribution?
+Report sent, thank you.
+Unable to send.
+Unable to create.
+Error.
+Error while
+Role:
+By
+by
+views
+reply/replies
+at
+with
+unit(s).
+help
+Announcement content can only be edited by its author; the back office can only delete it.
+Overview of the association's activity.
+Active accounts
+Total accounts
+Pending applications
+Open reports
+Latest collections
+Latest distributions
+Account distribution
+Count
+Assigned volunteers
+Collection:
+Distribution:
+Volunteer account ID
+The account ID is shown on the Accounts page.
+Partner merchant - email (if applicable)
+Partner (association, if applicable)
+Location or partner
+Approving the application automatically changes the account type to "volunteer".
+Comment (visible to the reporter in their notifications)
+User type
+Name or email
+Active account
+Processed
+Open
+Reply
+Applicant email
+Motivation:
+Pending participation requests
+Upcoming collections and distributions, assigned volunteers, and participation requests awaiting acceptance.
+Publication director: the president of the association.
+The site is hosted on infrastructure dedicated to the association.
+Received
+Under review
+Approved
+Rejected
+Archived
+Partner
+Views
+Created
+On
+Learn more
+View details
+Watch video
+allocated
+repair, pet sitting, rental, sale, donation.
+in euros (leave blank for donation/free)
+boxes
+kg
+liters
+packets
+units
+Log in to reply to this forum.
+Messaging & negotiation
+the food items →
+When you create an account, NO MORE WASTE collects your last name, first name, email address, phone number and postal address, as well as information related to your participation (volunteer applications, collections, distributions, listings, and forum messages).
+This data is used only to manage your account, organize food collections and distributions, and connect members of the association. It is never sold to third parties.
+Your data is kept for the duration of your membership, then archived or deleted in accordance with applicable regulations.
+The site only uses a technical session cookie, required for login and remembering your chosen language. No advertising or tracking cookie is used.
+All content on this site (text, logos, layout) is the property of the NO MORE WASTE association unless otherwise stated. Reproduction without permission is prohibited.
+NO MORE WASTE is published by the NO MORE WASTE association (French law 1901), whose purpose is to fight food waste by collecting and redistributing food to members and beneficiaries of the association.
+Food offered through the platform (collections, distributions, member-to-member listings) is facilitated by the association but remains the responsibility of the respective contributors.
+Under the General Data Protection Regulation (GDPR), you have the right to access, correct and delete your data. To exercise this right, contact the staff via the
+the food items
+Active
+Inactive
+Member
+Merchant
+Administrator
+Assigned volunteers
+Title
+Forum topic
+Forum message
+Announcement message
+Unable to add.
+Added by the team
+Collection
+Distribution
+Announcement
+Forum
+Membership renewed until 
+My forums
+My annonces
+You have not created any forum yet.
+You have not posted any annonce yet.
+Ingredient
+Kitchen tool
+Dish name
+Reset
+Author's email
+Memberships expiring within 30 days
+End
+Merchants
+Company name
+Legal ID (SIRET)
+Country
+Deactivate
+Reactivate
+Membership history
+Start
+Send a renewal reminder
+Reminder message
+Reminder sent.
+No merchant matches this search.
+No membership recorded.
+Stocks
+Storage location
+Storage type
+Max capacity
+Create a storage location
+Products
+Barcode
+Register a product
+Stock movements
+Movement type
+Record a movement
+No product matches this search.
+No movement recorded.
+No storage location recorded.
+Services
+Service category
+Rate
+Create a service
+Service schedule
+Capacity
+Register for this slot
+Unregister
+My registrations
+No service available.
+No schedule date.
+Spots remaining
+Download the PDF summary
+Generate the PDF summary
+Volunteers
+Skills
+Add a skill
+Level
+Assignments
+Members
+Registration date
+Site
+Weight (kg)
+Comment
+Cancel
+Cancel this slot?
+Log in as a member to register for a service.
+Page not found
+Access denied
+Internal server error
+An error occurred
+The requested page does not exist or has been moved.
+You do not have the rights to access this page.
+The server ran into a problem. Please try again shortly.
+Manager
